@@ -1,0 +1,16 @@
+{
+  "name": "clinico",
+  "version": "1.0.0",
+  "description": "Healthcare platform and Appointment booking system",
+  "homepage": "https://github.com/Karangosavi29/Clinico#readme",
+  "license": "ISC",
+  "author": "Karan Gosavi",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
