@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema({
     role:{
         type:String,
         enum:[ "doctor", "patient","admin"],
-        default:"Patient"
+        default:"patient"
     }
 
     
@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
 userSchema.pre("save",async function (next) {
     if(!this.isModified("password"))return next();
 
-    this.password=bcrypt.hash(this.password, 10)
+   await this.password=bcrypt.hash(this.password, 10)
     next();
 })  
 
@@ -47,6 +47,7 @@ userSchema.methods.generateAccessToken= function(){
         {
             _id:this.id,
             email:this.email,
+            role: this.role
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -54,7 +55,7 @@ userSchema.methods.generateAccessToken= function(){
         }
     )
 }
-userSchema.method.generateRefreshToken =function (){
+userSchema.methods.generateRefreshToken =function (){
     return jwt.sign(
         {
             _id:this.id,
