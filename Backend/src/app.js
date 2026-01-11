@@ -18,5 +18,16 @@ app.use(express.static("public")) //to serve static files
 app.use(cookieparser()) //to parse cookies
 
 
+//Routes import 
+import router from "./routes/user.Route.js"
+
+
+//route declaration 
+// https://localhost:8000/api/v1/users/register
+
+app.use("/api/v1/users",router)
+
+
+
 
 export {app}
