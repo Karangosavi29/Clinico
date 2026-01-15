@@ -129,7 +129,45 @@ const loginUser =asyncHandler( async (req ,res) => {
 })
 
 
+const logoutUser =asyncHandler ( async(req ,res) => {
+     //Remove refresh token from database (so it can’t be used again).
+     //Clear cookies on the client (accessToken and refreshToken).
+     //Send a success response.
+     
+     await User.findByIdAndUpdate(
+          req.user._id,
+          {
+               $set:{
+                    refreshToken:undefined
+               }
+          },
+          {
+               new:true
+          }
+     )
+
+
+     const options ={
+          httpOnly :true,
+          secure:true
+     }
+
+     return res
+     .status(200)
+     .cookie("accessToken",options)
+     .cookie("refreshToken", options)
+     .json(
+          new ApiResponse(200,
+               {},
+               "user LoggedOut In Succesfully"
+
+          )
+     )
+
+})
+
 
 export  {registerUser,
-         loginUser 
+         loginUser ,
+         logoutUser
 }
