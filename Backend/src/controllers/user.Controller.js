@@ -101,8 +101,7 @@ const loginUser =asyncHandler( async (req ,res) => {
 
      const {accessToken,refreshToken} = await generateAccessTokenAndRefreshTokens(user._id)
 
-     const loggedInUser =await User.findById(user._id)
-     select("-password -refreshToken")
+     const loggedInUser =await User.findById(user._id).select("-password -refreshToken")
 
 
      const options ={
@@ -166,8 +165,20 @@ const logoutUser =asyncHandler ( async(req ,res) => {
 
 })
 
+const getallUser =asyncHandler(async (req,res) => {
+     const users =await User.find().select("-password -refreshToken") // hide sensitive info
+
+     if(!users){
+          throw new ApiError(404,"No users Found")
+     }
+
+     res
+     .status(200)
+     .json(new ApiResponse(200,users,"User fetched succesfully"));
+})
 
 export  {registerUser,
          loginUser ,
-         logoutUser
+         logoutUser,
+         getallUser
 }
