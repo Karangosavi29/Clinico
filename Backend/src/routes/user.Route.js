@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {getallUser, loginUser, logoutUser, registerUser} from './../controllers/user.Controller.js';
+import {getallUser, loginUser, logoutUser, refreshAccessToken, registerUser} from './../controllers/user.Controller.js';
 import { verifyJWT } from './../middlewares/auth.Middleware.js';
 import { roleMiddleware } from "../middlewares/role.Middleware.js";
 
@@ -11,6 +11,7 @@ router.route("/Login").post(loginUser);
 
 //secure routes
 router.route("/Logout").post(verifyJWT,logoutUser);
+router.route("/refresh-token").post(refreshAccessToken);
 
 
 router.route("/admin/users").get(

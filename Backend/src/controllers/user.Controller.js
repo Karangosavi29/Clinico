@@ -2,6 +2,7 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.Model.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
+import  jwt  from 'jsonwebtoken';
 
 
 const generateAccessTokenAndRefreshTokens = async(userId) =>{
@@ -165,6 +166,48 @@ const logoutUser =asyncHandler ( async(req ,res) => {
 
 })
 
+const refreshAccessToken =asyncHandler(async (req ,res) => {
+     const incomingrefreshToken =req.cookie.refreshToken ||req.body.refreshToken
+
+     if(!incomingrefreshToken){
+          throw new ApiError(401,"Unauthorized request")
+     }
+
+     try {
+          const decodedToken =jwt.verify(
+               incomingrefreshToken,
+               process.env.REFRESH_TOKEN_SECRET
+          )
+     
+          const user =await User.findById(decodedToken?._id)    
+          if(!user){
+               throw new ApiError(401," Invalide refresh token")
+          }
+     
+          if(incomingrefreshToken !== user?.refreshToken){
+               throw new ApiError(401,"Refresh Token is Expired or used")
+          }
+     
+          const options ={
+               httpOnly:true,
+               secure:true
+          }
+     
+          const {accessToken,newrefreshToken} =await generateAccessTokenAndRefreshTokens(user._id)
+     
+          return res
+          .status(200)
+          .cookie("accessToken",accessToken)
+          .cookie("refreshToken",newrefreshToken)
+          .json(new ApiResponse(200,
+               {accessToken,refreshToken:newrefreshToken},
+               "Access token refreshed"
+          ))
+     } catch (error) {
+          throw new ApiError(401,error?.message ||"Invalide refresh Token")
+     }
+})
+
 const getallUser =asyncHandler(async (req,res) => {
      const users =await User.find().select("-password -refreshToken") // hide sensitive info
 
@@ -180,5 +223,6 @@ const getallUser =asyncHandler(async (req,res) => {
 export  {registerUser,
          loginUser ,
          logoutUser,
-         getallUser
+         getallUser,
+         refreshAccessToken
 }
