@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 const doctorSchema =new mongoose.Schema({
-    doctorid:{
+    userId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
+        ref:"user",
         required:true
     },
     specialization:{
@@ -14,7 +14,12 @@ const doctorSchema =new mongoose.Schema({
         type:Number,
         default:0,
 
-    }
+    },
+    availability: {
+    type: [String],
+    required: true
+}
+
 },{timestamps:true})
 
 
