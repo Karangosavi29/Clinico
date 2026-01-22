@@ -113,7 +113,7 @@ const deleteDoctor =async (req,res ,next) => {
             throw new ApiError(404,"Doctor not found")
         }
     
-        await doctor.findByIdAndDelete(req.params.id)
+        await Doctor.findByIdAndDelete(req.params.id)
     
          // Downgrade the user role back to patient
         await User.findByIdAndUpdate(doctor.userId,{role:"patient"})
