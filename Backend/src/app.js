@@ -19,13 +19,15 @@ app.use(cookieparser()) //to parse cookies
 
 
 //Routes import 
-import router from "./routes/user.Route.js"
+import userRouter  from "./routes/user.Route.js"
+import doctorRouter  from "./routes/doctor.Route.js"
 
 
 //route declaration 
 // https://localhost:8000/api/v1/users/register
 
-app.use("/api/v1/users",router)
+app.use("/api/v1/users",userRouter )
+app.use("/api/v1/doctors",doctorRouter)
 
 
 
