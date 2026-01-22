@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { appointment } from './appointment.Model';
 
 
 const appointmentSchema = new mongoose.Schema({
@@ -7,12 +8,12 @@ const appointmentSchema = new mongoose.Schema({
          ref: "User",
         required: true
     },
-    patientid:{
+    patientId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
         required:true
     },
-    doctorid:{
+    doctorId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
         required:true
@@ -21,7 +22,7 @@ const appointmentSchema = new mongoose.Schema({
         type:Date,
         required:true
     },
-    timeslot:{
+    timeSlot:{
         type:string,
         required:true
     },
@@ -36,3 +37,5 @@ const appointmentSchema = new mongoose.Schema({
 
 
 },{timestamps:true})
+
+export const Appointment =mongoose.model("appointment",appointmentSchema)
