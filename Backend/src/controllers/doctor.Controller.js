@@ -2,10 +2,11 @@ import { Doctor } from "../models/doctor.Model.js";
 import { User } from "../models/user.Model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 
- const createDoctor = async (req, res, next) => {
-  try {
+ const createDoctor = asyncHandler(async (req, res) => {
+  
     const { userId, specialization, experience, availability } = req.body;
 
     // Validate input
@@ -46,13 +47,11 @@ import { ApiResponse } from "../utils/ApiResponse.js";
     return res
       .status(201)
       .json(new ApiResponse(201, "Doctor created", doctor));
-  } catch (error) {
-    next(error);
-  }
-};
+  
+});
 
-const getallDoctor =async(req ,res ,next) => {
-    try { 
+const getallDoctor =asyncHandler(async(req ,res ) => {
+    
         //Fetch all doctor records from the database
         const doctors =await Doctor.find().populate("userId","name email role")  //Populate the user info for each doctor
         return res
@@ -60,13 +59,11 @@ const getallDoctor =async(req ,res ,next) => {
         .json(
             new ApiResponse(200, "Doctors retrieved successfully", doctors)
         )
-    } catch (error) {
-        next(error)
-    }
+    
 
-}
+});
 
-const getSingleDoctor =async (req, res ,next) => {
+const getSingleDoctor =asyncHandler(async (req, res ,next) => {
    try {
      //Fetch  doctor records from the database
      const doctor =await Doctor.findById(req.params.id).populate("userId","name email role")
@@ -83,10 +80,10 @@ const getSingleDoctor =async (req, res ,next) => {
    } catch (error) {
         next(error)
    }
-}
+});
 
-const updateDoctor =async (req,res, next) =>{
-try {
+const updateDoctor =asyncHandler(async (req,res) =>{
+
         //Fetch  doctor records from the database
         const doctor= await  Doctor.findByIdAndUpdate(req.params.id,req.body,{new:true})
     
@@ -99,15 +96,13 @@ try {
         .json(
             new ApiResponse(200,"Doctor Updated Succesfully",doctor)
         )
-} catch (error) {
-    next(error)
-}
-}
+
+});
 
 
-const deleteDoctor =async (req,res ,next) => {
+const deleteDoctor =asyncHandler(async (req,res ) => {
     
-    try {
+    
         const doctor =await Doctor.findById(req.params.id)
         if(!doctor){
             throw new ApiError(404,"Doctor not found")
@@ -123,10 +118,8 @@ const deleteDoctor =async (req,res ,next) => {
         .json(
             new ApiResponse(200,"Doctor delete Succesfully")
         )
-    } catch (error) {
-        next(error)
-    }
-}
+    
+});
 
 export {
     createDoctor,
