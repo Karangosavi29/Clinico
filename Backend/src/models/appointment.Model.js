@@ -1,13 +1,7 @@
 import mongoose from "mongoose";
-import { appointment } from './appointment.Model';
 
 
 const appointmentSchema = new mongoose.Schema({
-    appointmentId:{
-        type:mongoose.Schema.Types.ObjectId,
-         ref: "User",
-        required: true
-    },
     patientId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
@@ -23,16 +17,16 @@ const appointmentSchema = new mongoose.Schema({
         required:true
     },
     timeSlot:{
-        type:string,
+        type:String,
         required:true
     },
     status:{
-        type:string,
+        type:String,
         enum:["booked","cancelled","completed"],
         default:"booked"
     },
     notes:{   //Useful for prescriptions, remarks, or patient info
-        type:string,
+        type:String,
     }
 
 

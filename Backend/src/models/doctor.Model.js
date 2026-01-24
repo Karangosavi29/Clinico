@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const doctorSchema =new mongoose.Schema({
     userId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"user",
+        ref:"User",
         required:true
     },
     specialization:{
@@ -15,11 +15,20 @@ const doctorSchema =new mongoose.Schema({
         default:0,
 
     },
-    availability: {
-    type: [String],
-    required: true
-}
-
+    availability:[
+        {
+            day: {
+                type: String,  // e.g., "Monday", "Tuesday"
+                required: true
+            },
+            slots: [
+                {
+                    type: String, // e.g., "10:00", "14:30"
+                    required: true
+                }
+            ]
+        }
+    ]
 },{timestamps:true})
 
 

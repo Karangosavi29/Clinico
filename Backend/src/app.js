@@ -21,6 +21,7 @@ app.use(cookieparser()) //to parse cookies
 //Routes import 
 import userRouter  from "./routes/user.Route.js"
 import doctorRouter  from "./routes/doctor.Route.js"
+import appointmentRouter from"./routes/appointment.Route.js"
 
 
 //route declaration 
@@ -28,7 +29,7 @@ import doctorRouter  from "./routes/doctor.Route.js"
 
 app.use("/api/v1/users",userRouter )
 app.use("/api/v1/doctors",doctorRouter)
-
+app.use("/api/v1/appointments",appointmentRouter)
 
 
 

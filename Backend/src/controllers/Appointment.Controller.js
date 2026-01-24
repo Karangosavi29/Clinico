@@ -1,9 +1,9 @@
-import { Doctor } from "../models/doctor.Model";
-import { User } from "../models/user.Model";
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
-import { Appointment } from '../models/appointment.Model';
-import { asyncHandler } from "../utils/asyncHandler";
+import { Doctor } from "../models/doctor.Model.js";
+import { User } from "../models/user.Model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { Appointment } from '../models/appointment.Model.js';
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 
 
@@ -27,11 +27,19 @@ const bookAppointment =  asyncHandler(async(req,res) =>{
             throw new ApiError(404,"Doctor not Found")
         }
     
-        //check if doctor  is Available on time
-        if (!doctor.availability.includes(timeSlot.trim())) {
-            throw new ApiError(400, "Doctor is not available at the selected time.");
+         // Convert date to day of week
+          const dayOfWeek = new Date(date).toLocaleString("en-US", { weekday: "long" });
+
+        // Find doctor availability for that day
+         const dayAvailability = doctor.availability.find(d => d.day === dayOfWeek);
+         if (!dayAvailability) {
+             throw new ApiError(400, `Doctor is not available on ${dayOfWeek}.`);
         }
 
+        // Check if the requested timeSlot exists
+        if (!dayAvailability.slots.includes(timeSlot)) {
+            throw new ApiError(400, `Doctor is not available at ${timeSlot} on ${dayOfWeek}.`);
+        }
     
         //prevent overlaping appointments Prevent slot conflicts
         const existingAppointment =await Appointment.findOne({
@@ -109,8 +117,8 @@ const viewAppointment =asyncHandler(async(req,res)=>{
     const skip= (page-1)*limit;                      
 
     const appointments = await Appointment.find(filter)
-        .populate("patientId","name email")         //populate replace the ID with the actual document.
-        .populate("doctorId","name specialization")
+        .populate("patientId","name email role")         //populate replace the ID with the actual document.
+        .populate({ path: "doctorId", model: Doctor, select: "name specialization" })
         .sort({date:1,timeSlot:1})
         .skip(skip)
         .limit(limit)
@@ -152,27 +160,26 @@ const updateAppointment =asyncHandler(async(req,res)=>{
         }
         if(date)appointment.date=new Date(date);
 
-        if(timeSlot){
-            const doctor =await Doctor.findById(appointment.doctorId)
-            if(!doctor.availability.includes(timeSlot)){
-                throw new ApiError(400,"Doctor is not Availble at the selected time ")
-            }
+        if(timeSlot) {
+        const doctor = await Doctor.findById(appointment.doctorId);
 
-           const existing= await Appointment.findOne({
-                doctorId:appointment.doctorId,
-                date:new Date(date || appointment.date),
-                timeSlot,
-                status:"booked",
-                _id:{$ne:appointment._id},
+        // Get day of week for the appointment
+        const dayOfWeek = new Date(appointment.date).toLocaleString("en-US", { weekday: "long" });
 
-           })
-
-           if(existing){
-                throw new ApiError(400,"Time slot Already Booked")
-           }
-
-           appointment.timeSlot =timeSlot;
+        // Find availability for that day
+        const dayAvailability = doctor.availability.find(d => d.day === dayOfWeek);
+        if (!dayAvailability) {
+          throw new ApiError(400, `Doctor is not available on ${dayOfWeek}`);
         }
+
+        // Check if requested timeSlot exists
+        if (!dayAvailability.slots.includes(timeSlot)) {
+             throw new ApiError(400, `Doctor is not available at ${timeSlot} on ${dayOfWeek}`);
+        }
+
+            appointment.timeSlot = timeSlot;
+        }
+
 
         if(notes){
             appointment.notes=notes;
