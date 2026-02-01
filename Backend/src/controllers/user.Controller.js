@@ -293,6 +293,64 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) throw new ApiError(400, "Email is required");
+
+    const user = await User.findOne({ email });
+    if (!user) throw new ApiError(404, "User not found");
+
+    // Generate reset token
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    // Save token in DB
+    await Token.create({
+        userId: user._id,
+        tokenHash: hashedToken,
+        type: "RESET_PASSWORD",
+        expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour expiration
+    });
+
+    // Send reset email
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${rawToken}`;
+    await sendEmail(
+        user.email,
+        "Reset Your Password",
+        `Click here to reset your password: ${resetUrl}`
+    );
+
+    return res.status(200).json(new ApiResponse(200, {}, "Password reset email sent"));
+});
+
+
+const resetPassword = asyncHandler(async (req, res) => {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) throw new ApiError(400, "Token and new password are required");
+
+    // Hash token to match DB
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Find token document
+    const tokenDoc = await Token.findOne({
+        tokenHash: hashedToken,
+        type: "RESET_PASSWORD",
+        expiresAt: { $gt: Date.now() },
+    });
+
+    if (!tokenDoc) throw new ApiError(400, "Invalid or expired password reset token");
+
+    // Update password
+    const user = await User.findById(tokenDoc.userId);
+    user.password = newPassword;
+    await user.save();
+
+    // Delete token
+    await tokenDoc.deleteOne();
+
+    return res.status(200).json(new ApiResponse(200, {}, "Password has been reset successfully"));
+});
+
 
 
 
@@ -302,5 +360,7 @@ export  {registerUser,
          logoutUser,
          getallUser,
          refreshAccessToken,
-         verifyEmail
+         verifyEmail,
+         forgotPassword,
+         resetPassword
 }
