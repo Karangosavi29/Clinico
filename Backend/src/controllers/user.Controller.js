@@ -1,8 +1,11 @@
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.Model.js"
+import { Token } from "../models/token.Model.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
+import { sendEmail } from "../utils/email.js"
 import  jwt  from 'jsonwebtoken';
+import crypto from "crypto";
 
 
 const generateAccessTokenAndRefreshTokens = async(userId) =>{
@@ -28,6 +31,8 @@ const registerUser= asyncHandler(async (req, res) =>{
     //check if user already exits :email
     // create user object -create entry in db
     //remove password and refresh token field from response
+     //Generate email verification token
+     //Send verification email
     //check for user creation 
     //return res 
 
@@ -57,7 +62,21 @@ const registerUser= asyncHandler(async (req, res) =>{
         password,
         role,
    })
+     //Generate email verification token
+   const rawToken = crypto.randomBytes(32).toString("hex");
+   const hashedToken=crypto.createHash("sha256").update(rawToken).digest("hex")
 
+   await Token.create({
+     userId:user._id,
+     tokenHash:hashedToken,
+     type:"VERIFY_EMAIL",
+     expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+   })
+
+   //send verification email
+   const verificationUrl=`${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`
+   await sendEmail(user.email, "Verify your email", `Click here to verify: ${verificationUrl}`);
+   
    const createdUser =await User.findById(user._id).select(
     "-password -refreshToken"
    )
@@ -77,6 +96,7 @@ const loginUser =asyncHandler( async (req ,res) => {
      //req body -- data
      //email
      //find the user
+     //check email is verified
      //password check
      //access and refresh Token
      //send in cookie
@@ -92,6 +112,10 @@ const loginUser =asyncHandler( async (req ,res) => {
 
      if(!user){
           throw new ApiError(404,"User does not exist")
+     }
+
+     if (!user.emailVerified) {
+        throw new ApiError(403, "Please verify your email before logging in");
      }
 
      const isPasswordvalid =await user.isPasswordCorrect(password)
@@ -220,9 +244,63 @@ const getallUser =asyncHandler(async (req,res) => {
      .json(new ApiResponse(200,users,"User fetched succesfully"));
 })
 
+const verifyEmail = asyncHandler(async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        throw new ApiError(400, "Verification token is required");
+    }
+
+    // Hash the incoming token the same way as stored in DB
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Find the token document
+    const tokenDoc = await Token.findOne({
+        tokenHash: hashedToken,
+        type: "VERIFY_EMAIL",
+        expiresAt: { $gt: Date.now() }, // check not expired
+    });
+
+    if (!tokenDoc) {
+        throw new ApiError(400, "Invalid or expired verification token");
+    }
+
+    // Update user's emailVerified field
+    const user = await User.findByIdAndUpdate(tokenDoc.userId, { emailVerified: true }, { new: true });
+
+    // Delete the token after successful verification
+    await tokenDoc.deleteOne();
+
+    // Generate access and refresh tokens for automatic login
+    const { accessToken, refreshToken } = await generateAccessTokenAndRefreshTokens(user._id);
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: true, // true in production
+    };
+
+    // If request is from a browser, redirect to frontend page and set cookies
+    if (req.headers.accept && req.headers.accept.includes("text/html")) {
+        res.cookie("accessToken", accessToken, cookieOptions);
+        res.cookie("refreshToken", refreshToken, cookieOptions);
+        return res.redirect(`${process.env.FRONTEND_URL}/email-verified`);
+    }
+
+    // Otherwise, send JSON response (for API testing)
+    return res.status(200).json(
+        new ApiResponse(200, { user, accessToken, refreshToken }, "Email verified and user logged in successfully")
+    );
+});
+
+
+
+
+
+
 export  {registerUser,
          loginUser ,
          logoutUser,
          getallUser,
-         refreshAccessToken
+         refreshAccessToken,
+         verifyEmail
 }

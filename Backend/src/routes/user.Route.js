@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {getallUser, loginUser, logoutUser, refreshAccessToken, registerUser} from './../controllers/user.Controller.js';
+import {getallUser, loginUser, logoutUser, refreshAccessToken, registerUser, verifyEmail} from './../controllers/user.Controller.js';
 import { verifyJWT } from './../middlewares/auth.Middleware.js';
 import { roleMiddleware } from "../middlewares/role.Middleware.js";
 
@@ -17,5 +17,8 @@ router.route("/refresh-token").post(refreshAccessToken);
 router.route("/admin/users").get(
     verifyJWT,                   // Must be logged in
     roleMiddleware("admin")        // Must be admin
-    ,getallUser)                     // Controller that returns users
+    ,getallUser                     // Controller that returns users
+)                     
+
+router.route("/verify-email").get(verifyEmail)
 export default router; 
