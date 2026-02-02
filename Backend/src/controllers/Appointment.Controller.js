@@ -158,7 +158,19 @@ const updateAppointment =asyncHandler(async(req,res)=>{
         if(appointment.status !== "booked"){
             throw new ApiError(400,"Only booked appointment can be Updated")
         }
-        if(date)appointment.date=new Date(date);
+        //updating the date, check if the current timeSlot is still valid
+        if(date){
+            appointment.date = new Date(date);
+
+            const doctor = await Doctor.findById(appointment.doctorId);
+            const dayOfWeek = appointment.date.toLocaleString("en-US", { weekday: "long" });
+            const dayAvailability = doctor.availability.find(d => d.day === dayOfWeek);
+
+            if(!dayAvailability || !dayAvailability.slots.includes(appointment.timeSlot)){
+                throw new ApiError(400, `Current timeSlot is not available on the new date (${dayOfWeek})`);
+            }
+        }
+
 
         if(timeSlot) {
         const doctor = await Doctor.findById(appointment.doctorId);
@@ -177,10 +189,28 @@ const updateAppointment =asyncHandler(async(req,res)=>{
              throw new ApiError(400, `Doctor is not available at ${timeSlot} on ${dayOfWeek}`);
         }
 
-            appointment.timeSlot = timeSlot;
-        }
+        // Ensure conflict check uses full day
+        const conflictStart = new Date(appointment.date);
+        conflictStart.setHours(0, 0, 0, 0);
+
+        const conflictEnd = new Date(appointment.date);
+        conflictEnd.setHours(23, 59, 59, 999);
+
+        const conflict = await Appointment.findOne({
+             _id: { $ne: appointmentId },
+            doctorId: appointment.doctorId,
+            date: { $gte: conflictStart, $lte: conflictEnd },
+            timeSlot,
+            status: "booked"
+        });
+
+        if(conflict) throw new ApiError(400, "Time slot already booked");
+
+        appointment.timeSlot = timeSlot; 
 
 
+        
+    }
         if(notes){
             appointment.notes=notes;
         }
@@ -193,12 +223,41 @@ const updateAppointment =asyncHandler(async(req,res)=>{
         if (status) appointment.status = status; // e.g., completed, cancelled
     }
 
+    //Admin updates: validate availability + conflict
     if(role == "admin"){
-        if(date) appointment.date=new Date(date);
-        if(timeSlot) appointment.timeSlot=timeSlot;
-        if(notes) appointment.notes=notes;
-        if(status) appointment.status=status;
+        if(date) appointment.date = new Date(date);
+
+        const doctor = await Doctor.findById(appointment.doctorId);
+        const dayOfWeek = new Date(appointment.date).toLocaleString("en-US", { weekday: "long" });
+        const dayAvailability = doctor.availability.find(d => d.day === dayOfWeek);
+
+        if(timeSlot){
+            if(!dayAvailability || !dayAvailability.slots.includes(timeSlot)){
+               throw new ApiError(400, `Doctor is not available at ${timeSlot} on ${dayOfWeek}`);
+            }
+
+            // Conflict check for admin
+            const conflictStart = new Date(appointment.date);
+            conflictStart.setHours(0,0,0,0);
+            const conflictEnd = new Date(appointment.date);
+            conflictEnd.setHours(23,59,59,999);
+
+            const conflict = await Appointment.findOne({
+                _id: { $ne: appointmentId },
+                doctorId: appointment.doctorId,
+                date: { $gte: conflictStart, $lte: conflictEnd },
+                timeSlot,
+                status: "booked"
+            });
+            if(conflict) throw new ApiError(400, "Time slot already booked");
+
+            appointment.timeSlot = timeSlot;
+        }
+
+        if(notes) appointment.notes = notes;
+        if(status) appointment.status = status;
     }
+
 
     //Save Appointment
     await appointment.save();
@@ -209,7 +268,6 @@ const updateAppointment =asyncHandler(async(req,res)=>{
         new ApiResponse(200,"Appointment updated Successfully",appointment)
     )
 
-  
 })
 
 const cancelAppointment =asyncHandler(async (req, res) => {
@@ -254,10 +312,25 @@ const cancelAppointment =asyncHandler(async (req, res) => {
 
 })
 
+//  endpoint for doctor to update availability
+const updateAvailability = asyncHandler(async (req, res) => {
+    const { availability } = req.body; // [{ day: "Monday", slots: ["10:00","11:00"] }]
+    const doctorId = req.user._id;
+
+    const doctor = await Doctor.findById(doctorId);
+    if(!doctor) throw new ApiError(404,"Doctor not found");
+
+    doctor.availability = availability;
+    await doctor.save();
+
+    return res.status(200).json(new ApiResponse(200,"Availability updated", doctor));
+});
+
 
 export {
     bookAppointment,
     viewAppointment,
     updateAppointment,
-    cancelAppointment
+    cancelAppointment,
+    updateAvailability
 }
