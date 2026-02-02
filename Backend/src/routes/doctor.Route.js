@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.Middleware.js";
 import { roleMiddleware } from "../middlewares/role.Middleware.js";
-import {createDoctor, deleteDoctor, getallDoctor, getSingleDoctor, updateDoctor} from "../controllers/doctor.Controller.js"
+import {createDoctor, deleteDoctor, getallDoctor, getAvailability, getDoctorStats, getSingleDoctor, updateAvailability} from "../controllers/doctor.Controller.js"
 const router =Router();
 
 
@@ -16,4 +16,11 @@ router.route("/:id").get(getSingleDoctor)
 router.route("/:id").put(verifyJWT,roleMiddleware("admin"),updateDoctor)
 router.route("/:id").delete(verifyJWT,roleMiddleware("admin"),deleteDoctor)
 
+
+//Availability routes doctor
+router.route("/:id/availability").put(verifyJWT,roleMiddleware("doctor"),updateAvailability)
+router.route("/:id/availability").get(getAvailability)
+
+//doctor dashboards
+router.route("/dashboard").get(verifyJWT,roleMiddleware("doctor"),getDoctorStats)
 export default router;

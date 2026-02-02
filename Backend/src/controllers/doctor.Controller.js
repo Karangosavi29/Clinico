@@ -121,10 +121,73 @@ const deleteDoctor =asyncHandler(async (req,res ) => {
     
 });
 
+// Doctor updates their availability
+const updateAvailability = asyncHandler(async (req, res) => {
+    const { availability } = req.body; // [{ day: "Monday", slots: ["10:00","11:00"] }]
+    const doctorId = req.user._id;
+
+    const doctor = await Doctor.findById(doctorId);
+    if(!doctor) throw new ApiError(404,"Doctor not found");
+
+    doctor.availability = availability;
+    await doctor.save();
+
+    return res.status(200).json(new ApiResponse(200,"Availability updated", doctor));
+});
+
+// Optionally, a GET endpoint to read availability
+const getAvailability = asyncHandler(async (req, res) => {
+    const doctorId = req.params.id;
+    const doctor = await Doctor.findById(doctorId).select("availability");
+    if(!doctor) throw new ApiError(404,"Doctor not found");
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,"Availability fetched", doctor.availability));
+});
+
+// Doctor Dashboard 
+const getDoctorStats = asyncHandler(async (req, res) => {
+    const doctorId = req.user._id; // Doctor must be authenticated
+
+    // Fetch all appointments for this doctor
+    const appointments = await Appointment.find({ doctorId });
+
+    if (!appointments) throw new ApiError(404, "No appointments found");
+
+    // Calculate stats
+    const totalAppointments = appointments.length;
+    const booked = appointments.filter(a => a.status === "booked").length;
+    const completed = appointments.filter(a => a.status === "completed").length;
+    const cancelled = appointments.filter(a => a.status === "cancelled").length;
+
+    const today = new Date();
+    const upcoming = appointments.filter(a => a.status === "booked" && a.date >= today).length;
+
+    // unique patients
+    const patientsSet = new Set(appointments.map(a => a.patientId.toString()));
+    const uniquePatients = patientsSet.size;
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, "Doctor stats fetched", {
+        totalAppointments,
+        booked,
+        completed,
+        cancelled,
+        upcoming,
+        uniquePatients
+    }));
+});
+
+
 export {
     createDoctor,
     getallDoctor,
     getSingleDoctor,
     updateDoctor,
-    deleteDoctor
+    deleteDoctor,
+    updateAvailability,
+    getAvailability,
+    getDoctorStats
 }

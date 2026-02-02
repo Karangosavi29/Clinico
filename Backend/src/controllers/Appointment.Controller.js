@@ -312,19 +312,7 @@ const cancelAppointment =asyncHandler(async (req, res) => {
 
 })
 
-//  endpoint for doctor to update availability
-const updateAvailability = asyncHandler(async (req, res) => {
-    const { availability } = req.body; // [{ day: "Monday", slots: ["10:00","11:00"] }]
-    const doctorId = req.user._id;
 
-    const doctor = await Doctor.findById(doctorId);
-    if(!doctor) throw new ApiError(404,"Doctor not found");
-
-    doctor.availability = availability;
-    await doctor.save();
-
-    return res.status(200).json(new ApiResponse(200,"Availability updated", doctor));
-});
 
 
 export {
@@ -332,5 +320,5 @@ export {
     viewAppointment,
     updateAppointment,
     cancelAppointment,
-    updateAvailability
+    
 }
