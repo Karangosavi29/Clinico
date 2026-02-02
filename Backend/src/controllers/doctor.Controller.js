@@ -54,6 +54,24 @@ const getallDoctor =asyncHandler(async(req ,res ) => {
     
         //Fetch all doctor records from the database
         const doctors =await Doctor.find().populate("userId","name email role")  //Populate the user info for each doctor
+        
+         // Fetch reviews for all doctors
+        const doctorIds = doctors.map(d => d._id);
+        const reviews = await Review.aggregate([
+            { $match: { doctorId: { $in: doctorIds } } },
+            { $group: { _id: "$doctorId", avgRating: { $avg: "$rating" }, reviewCount: { $sum: 1 } } }
+        ]);
+
+        // Map reviews to doctors
+        doctors = doctors.map(doc => {
+            const reviewData = reviews.find(r => r._id.toString() === doc._id.toString());
+            return {
+                ...doc.toObject(),
+                avgRating: reviewData ? reviewData.avgRating : 0,
+                reviewCount: reviewData ? reviewData.reviewCount : 0
+            };
+        });
+
         return res
         .status(200)
         .json(
