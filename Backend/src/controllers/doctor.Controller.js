@@ -164,7 +164,7 @@ const getAvailability = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200,"Availability fetched", doctor.availability));
 });
 
-// Doctor Dashboard 
+// Doctor Dashboard (number of appointments, completed visits, etc)
 const getDoctorStats = asyncHandler(async (req, res) => {
     const doctorId = req.user._id; // Doctor must be authenticated
 
@@ -197,6 +197,31 @@ const getDoctorStats = asyncHandler(async (req, res) => {
         uniquePatients
     }));
 });
+
+// Dashboard (today/upcoming/completed)
+const getDoctorDashboard = asyncHandler(async (req, res) => {
+    const doctorId = req.user._id;
+    const filter = req.query.filter; // today, upcoming, completed
+    let query = { doctorId };
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    if (filter === "today") query.date = { $gte: todayStart, $lte: todayEnd };
+    if (filter === "upcoming") query.date = { $gt: todayEnd };
+    if (filter === "completed") query.status = "completed";
+
+    const appointments = await Appointment.find(query)
+        .populate("patientId", "name email")
+        .sort({ date: 1, timeSlot: 1 });
+
+    return res.status(200).json(
+        new ApiResponse(200, "Doctor dashboard fetched", appointments)
+    );
+});
+
 
 
 export {

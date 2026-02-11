@@ -23,4 +23,5 @@ router.route("/:id/availability").get(getAvailability)
 
 //doctor dashboards
 router.route("/dashboard").get(verifyJWT,roleMiddleware("doctor"),getDoctorStats)
+router.route("/dashboard").get(verifyJWT, roleMiddleware("doctor"), getDoctorDashboard);
 export default router;

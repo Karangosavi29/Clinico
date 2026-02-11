@@ -312,6 +312,86 @@ const cancelAppointment =asyncHandler(async (req, res) => {
 
 })
 
+const rescheduleAppointment =asyncHandler(async(req,res) =>{
+    //Validate Request
+    //Fetch Appointment
+    //Role-Based Access
+    //Business Logic / Validation
+    //Check doctor availability
+    // Check for conflicts
+    //Update / Save Appointment
+    // Return Response
+
+    const appointmentId = req.params.id;
+    const { date, timeSlot } = req.body;
+    const { role, _id: userId } = req.user;
+
+    const appointment = await Appointment.findById(appointmentId);
+      if (!appointment) throw new ApiError(404, "Appointment not found");
+
+    // Only patient or admin
+    if(role === "patient" && appointment.patientId.toString() !== userId.toString()){
+        throw new ApiError(403,"you can reshedule your appointment")
+    }
+
+    if(appointment.status !=="approved" && appointment.status !=="pending"){
+        throw new ApiError(400,"only pending or approved appointment can be rescheduled")
+    }
+
+    //Availability + conflict check (reuse your logic)
+    const doctor = await Doctor.findById(appointment.doctorId);
+    const newDate = new Date(date);
+    const dayOfWeek = newDate.toLocaleString("en-US", { weekday: "long" });
+
+    const dayAvailability = doctor.availability.find(d => d.day === dayOfWeek);
+    if (!dayAvailability || !dayAvailability.slots.includes(timeSlot)) {
+        throw new ApiError(400, "Doctor not available at selected time");
+    }
+
+    const conflict = await Appointment.findOne({
+        _id: { $ne: appointmentId },
+        doctorId: appointment.doctorId,
+        date: newDate,
+        timeSlot,
+        status: { $in: ["pending", "approved"] }
+    });
+
+    if (conflict) throw new ApiError(400, "Time slot already booked");
+
+    appointment.date = newDate;
+    appointment.timeSlot = timeSlot;
+
+    await appointment.save();
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, "Appointment rescheduled successfully", appointment)
+    );
+})
+
+const approveAppointment = asyncHandler(async (req, res) => {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) throw new ApiError(404, "Appointment not found");
+    if (appointment.status !== "pending") throw new ApiError(400, "Only pending appointments can be approved");
+
+    appointment.status = "approved";
+    await appointment.save();
+
+    return res.status(200).json(new ApiResponse(200, "Appointment approved", appointment));
+});
+
+const cancelAppointmentAdmin = asyncHandler(async (req, res) => {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) throw new ApiError(404, "Appointment not found");
+    if (appointment.status === "cancelled") throw new ApiError(400, "Already cancelled");
+
+    appointment.status = "cancelled";
+    await appointment.save();
+
+    return res.status(200).json(new ApiResponse(200, "Appointment cancelled", appointment));
+});
+
+
 
 
 
@@ -320,5 +400,8 @@ export {
     viewAppointment,
     updateAppointment,
     cancelAppointment,
+    rescheduleAppointment,
+    approveAppointment,
+    cancelAppointmentAdmin
     
 }

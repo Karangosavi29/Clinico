@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.Middleware.js";
 import { roleMiddleware } from "../middlewares/role.Middleware.js";
-import { bookAppointment, cancelAppointment, updateAppointment, viewAppointment } from "../controllers/Appointment.Controller.js";
+import { approveAppointment, bookAppointment, cancelAppointment, rescheduleAppointment, updateAppointment, viewAppointment } from "../controllers/Appointment.Controller.js";
 
 
 const router=Router();
@@ -14,5 +14,12 @@ router.route("/").get(verifyJWT,viewAppointment)
 router.route("/:id").put(verifyJWT,updateAppointment)
 //cancel
 router.route("/:id").patch(verifyJWT,cancelAppointment)
+//reschedule
+router.route("/:id/reschedule").post(verifyJWT,roleMiddleware("patient", "admin"),rescheduleAppointment)
 
+
+
+//admin
+router.route("/admin/:id/approve").post(verifyJWT,roleMiddleware("admin"),approveAppointment)
+router.route("/admin/:id/cancel").post(verifyJWT,roleMiddleware("admin"),cancelAppointment)
 export default router;
