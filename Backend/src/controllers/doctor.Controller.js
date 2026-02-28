@@ -1,5 +1,6 @@
 import { Doctor } from "../models/doctor.Model.js";
 import { User } from "../models/user.Model.js";
+import {Review} from "../models/review.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -53,7 +54,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const getallDoctor =asyncHandler(async(req ,res ) => {
     
         //Fetch all doctor records from the database
-        const doctors =await Doctor.find().populate("userId","name email role")  //Populate the user info for each doctor
+        let  doctors =await Doctor.find().populate("userId","name email role")  //Populate the user info for each doctor
         
          // Fetch reviews for all doctors
         const doctorIds = doctors.map(d => d._id);
