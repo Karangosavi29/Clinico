@@ -232,5 +232,6 @@ export {
     deleteDoctor,
     updateAvailability,
     getAvailability,
-    getDoctorStats
+    getDoctorStats,
+    getDoctorDashboard
 }

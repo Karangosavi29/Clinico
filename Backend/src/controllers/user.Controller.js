@@ -11,17 +11,19 @@ import crypto from "crypto";
 const generateAccessTokenAndRefreshTokens = async(userId) =>{
      try {
           const user =await User.findById(userId)
+          if (!user) throw new ApiError(404, "User not found");
           const accessToken =user.generateAccessToken()
           const refreshToken =user.generateRefreshToken()
 
           user.refreshToken =refreshToken
-          await user.save({validateBeforesave :false})
+          await user.save({validateBeforeSave :false})
 
           return {accessToken,refreshToken}
 
 
      } catch (error) {
-          throw new ApiError(500,"Something went wrong while generating Access and refresh toKen")
+          console.error("Token generation error:", error);
+          throw new ApiError(500,"Something went wrong while generating Access and refresh token")
      }
 }
 
@@ -66,11 +68,11 @@ const registerUser= asyncHandler(async (req, res) =>{
    const rawToken = crypto.randomBytes(32).toString("hex");
    const hashedToken=crypto.createHash("sha256").update(rawToken).digest("hex")
 
-   await Token.create({
+   const token = await Token.create({
      userId:user._id,
      tokenHash:hashedToken,
      type:"VERIFY_EMAIL",
-     expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+     expiresAt:new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
    })
 
    //send verification email
@@ -251,27 +253,44 @@ const verifyEmail = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Verification token is required");
     }
 
-    // Hash the incoming token the same way as stored in DB
+    // Hash the incoming token to match what we stored
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    console.log("Incoming raw token:", token);
+    console.log("Hashed token for DB lookup:", hashedToken);
 
     // Find the token document
     const tokenDoc = await Token.findOne({
         tokenHash: hashedToken,
         type: "VERIFY_EMAIL",
-        expiresAt: { $gt: Date.now() }, // check not expired
+        expiresAt: { $gt: new Date() }, // compare with Date object
+        used: false // ensure token hasn’t been used
     });
 
     if (!tokenDoc) {
+        console.log("No matching token found in DB.");
         throw new ApiError(400, "Invalid or expired verification token");
     }
 
-    // Update user's emailVerified field
-    const user = await User.findByIdAndUpdate(tokenDoc.userId, { emailVerified: true }, { new: true });
+    console.log("DB token found:", tokenDoc);
 
-    // Delete the token after successful verification
+    // Find the associated user
+    const user = await User.findById(tokenDoc.userId);
+    if (!user) {
+        throw new ApiError(404, "User not found for this token");
+    }
+
+    // Mark email as verified
+    user.emailVerified = true;
+    await user.save({ validateBeforeSave: false });
+
+    // Mark the token as used and remove it (optional)
+    tokenDoc.used = true;
+    await tokenDoc.save();
     await tokenDoc.deleteOne();
 
-    // Generate access and refresh tokens for automatic login
+    console.log(`User ${user._id} email verified successfully.`);
+
+    // Generate access and refresh tokens for auto-login
     const { accessToken, refreshToken } = await generateAccessTokenAndRefreshTokens(user._id);
 
     const cookieOptions = {
@@ -279,18 +298,19 @@ const verifyEmail = asyncHandler(async (req, res) => {
         secure: true, // true in production
     };
 
-    // If request is from a browser, redirect to frontend page and set cookies
+    // Browser redirect scenario
     if (req.headers.accept && req.headers.accept.includes("text/html")) {
         res.cookie("accessToken", accessToken, cookieOptions);
         res.cookie("refreshToken", refreshToken, cookieOptions);
         return res.redirect(`${process.env.FRONTEND_URL}/email-verified`);
     }
 
-    // Otherwise, send JSON response (for API testing)
+    // API / JSON scenario
     return res.status(200).json(
         new ApiResponse(200, { user, accessToken, refreshToken }, "Email verified and user logged in successfully")
     );
 });
+
 
 
 const forgotPassword = asyncHandler(async (req, res) => {

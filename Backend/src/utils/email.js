@@ -15,17 +15,18 @@ export const sendEmail = async (to, subject, htmlContent) => {
 
     // Email options
     const mailOptions = {
-      from: `"MyApp" <${process.env.SMTP_USER}>`,
+      from: `"Clinico" <karangosavi29052006@gmail.com>`,
       to,
       subject,
       html: htmlContent,
+      replyTo: "support@clinico.com",
     };
 
     // Send email
     await transporter.sendMail(mailOptions);
     console.log(`Email sent to ${to}`);
   } catch (error) {
-    console.error("Error sending email:", error.message);
-    throw new Error("Email could not be sent");
+    console.error("Error sending email:", error);
+    throw error;
   }
 };
