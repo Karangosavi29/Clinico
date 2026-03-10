@@ -5,7 +5,7 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-// Attach access token
+// Attach access token to every request
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
@@ -14,20 +14,25 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-// Refresh token on 401
+// Auto-refresh on 401
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
       try {
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
+          `${import.meta.env.VITE_API_URL}/api/v1/users/refresh-token`,
           {},
           { withCredentials: true }
         );
-        localStorage.setItem("accessToken", res.data.accessToken);
-        error.config.headers.Authorization = `Bearer ${res.data.accessToken}`;
-        return axiosInstance(error.config);
+        const newToken = res.data?.data?.accessToken;
+        if (newToken) {
+          localStorage.setItem("accessToken", newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return axiosInstance(originalRequest);
+        }
       } catch (err) {
         localStorage.clear();
         window.location.href = "/login";

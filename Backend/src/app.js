@@ -5,7 +5,7 @@ const app =express()
 
 app.use(cors({  //for what you allow
     origin:process.env.CORS_ORIGIN,
-    credentials:true
+    credentials:true,
     
 }))
 
