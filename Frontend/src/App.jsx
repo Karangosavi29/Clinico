@@ -4,43 +4,27 @@ import Signup from "./pages/auth/Signup.jsx";
 import DoctorSignup from "./pages/auth/DoctorSignup.jsx";
 import VerifyEmail from "./pages/auth/VerifyEmail.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import DoctorProfile from "./pages/doctor/DoctorProfile.jsx";
+import PatientDashboard from "./pages/patient/PatientDashboard.jsx";
+import DoctorDashboard from "./pages/doctor/DoctorDashboard.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/"              element={<HomePage />} />
-      <Route path="/login"         element={<Login />} />
-      <Route path="/signup"        element={<Signup />} />
-      <Route path="/doctor-signup" element={<DoctorSignup />} />
-      <Route path="/verify-email"  element={<VerifyEmail />} />
+      <Route path="/"                element={<HomePage />} />
+      <Route path="/login"           element={<Login />} />
+      <Route path="/signup"          element={<Signup />} />
+      <Route path="/doctor-signup"   element={<DoctorSignup />} />
+      <Route path="/verify-email"    element={<VerifyEmail />} />
+      <Route path="/doctors/:id"     element={<DoctorProfile />} />
 
       {/* Protected — role-based */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute role="admin">
-            <div>Admin Dashboard (coming soon)</div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/doctor"
-        element={
-          <ProtectedRoute role="doctor">
-            <div>Doctor Dashboard (coming soon)</div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/patient"
-        element={
-          <ProtectedRoute role="patient">
-            <div>Patient Dashboard (coming soon)</div>
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/admin"   element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/doctor"  element={<ProtectedRoute role="doctor"><DoctorDashboard /></ProtectedRoute>} />
+      <Route path="/patient" element={<ProtectedRoute role="patient"><PatientDashboard /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
