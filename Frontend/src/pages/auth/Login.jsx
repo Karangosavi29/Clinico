@@ -268,10 +268,10 @@ const Login = () => {
                     placeholder="••••••••" required icon="🔒" error={errors.password} />
 
                   <div style={{ textAlign: "right", marginTop: "-6px", marginBottom: "22px" }}>
-                    <button type="button" onClick={() => setShowForgot(true)}
-                      style={{ background: "none", border: "none", color: C.teal, cursor: "pointer", fontSize: "12px", fontWeight: "600", textDecoration: "underline", padding: 0 }}>
+                    <Link to="/forgot-password"
+                      style={{ color: C.teal, fontSize: "12px", fontWeight: "600", textDecoration: "underline" }}>
                       Forgot password?
-                    </button>
+                    </Link>
                   </div>
                   <Btn loading={loading} label="Sign In" />
                 </form>

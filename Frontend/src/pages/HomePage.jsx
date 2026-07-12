@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 /* ── Design Tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -43,6 +44,10 @@ const STEPS = [
 /* ── Sub-components ────────────────────────────────────────────────────────── */
 function Navbar() {
   const [hov, setHov] = useState(null);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => { await logout(); navigate("/login"); };
 
   return (
     <nav style={{
@@ -63,7 +68,7 @@ function Navbar() {
 
       {/* Nav links */}
       <div style={{ display: "flex", gap: "32px" }}>
-        {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Doctors", "#doctors"]].map(([label, href]) => (
+        {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Doctors", "#doctors"], ["Browse Doctors", "/browse-doctors"]].map(([label, href]) => (
           <a key={label} href={href} style={{
             fontSize: "14px", fontWeight: "500",
             color: hov === label ? C.teal : C.textMid,
@@ -76,9 +81,25 @@ function Navbar() {
       </div>
 
       {/* Auth buttons */}
-      <div style={{ display: "flex", gap: "10px" }}>
-        <NavBtn to="/login"  label="Sign In"  primary={false} />
-        <NavBtn to="/signup" label="Sign Up"  primary={true}  />
+      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        {user ? (
+          <>
+            <span style={{ fontSize: "13px", color: C.textMid, fontWeight: "600" }}>👋 {user.name}</span>
+            <NavBtn to={`/${user.role}`} label="Dashboard" primary={true} />
+            <button onClick={handleLogout}
+              style={{
+                padding: "8px 16px", borderRadius: "9px", fontSize: "13px", fontWeight: "700",
+                fontFamily: F.body, cursor: "pointer", transition: "all 0.2s",
+                background: "#fff1f0", color: "#c0392b",
+                border: "1px solid #f5b8b8",
+              }}>Logout</button>
+          </>
+        ) : (
+          <>
+            <NavBtn to="/login"  label="Sign In"  primary={false} />
+            <NavBtn to="/signup" label="Sign Up"  primary={true}  />
+          </>
+        )}
       </div>
     </nav>
   );
@@ -378,9 +399,9 @@ const HomePage = () => {
               </p>
 
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <HeroBtn to="/signup"        label="🚀 Get Started"      />
-                <HeroBtn to="/signup"        label="🔍 Find a Doctor"     />
-                <HeroBtn to="/doctor-signup" label="🩺 Become a Doctor"   />
+                <HeroBtn to="/signup"          label="🚀 Get Started"      />
+                <HeroBtn to="/browse-doctors"  label="🔍 Find a Doctor"     />
+                <HeroBtn to="/doctor-signup"   label="🩺 Become a Doctor"   />
               </div>
 
               {/* Trust bar */}
@@ -449,7 +470,7 @@ const HomePage = () => {
               {visible.map((d, i) => <DoctorCard key={i} d={d} />)}
             </div>
             <div style={{ textAlign: "center", marginTop: "36px" }}>
-              <Link to="/signup" style={{ textDecoration: "none" }}>
+              <Link to="/browse-doctors" style={{ textDecoration: "none" }}>
                 <button style={{ padding: "13px 32px", background: C.teal, color: C.white, border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: "700", fontFamily: F.body, cursor: "pointer", boxShadow: "0 4px 18px rgba(11,110,110,0.25)" }}>
                   View All Doctors →
                 </button>
