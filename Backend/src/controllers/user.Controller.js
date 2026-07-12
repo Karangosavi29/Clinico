@@ -77,7 +77,11 @@ const registerUser= asyncHandler(async (req, res) =>{
 
    //send verification email
    const verificationUrl=`${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`
-   await sendEmail(user.email, "Verify your email", `Click here to verify: ${verificationUrl}`);
+   try {
+     await sendEmail(user.email, "Verify your email", `Click here to verify: ${verificationUrl}`);
+   } catch (emailErr) {
+     console.error("Email send failed (user still created):", emailErr.message);
+   }
    
    const createdUser =await User.findById(user._id).select(
     "-password -refreshToken"

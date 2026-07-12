@@ -1,5 +1,5 @@
-import { asyncHandler } from "../utils/asyncHandler";
-import { Review } from "../models/review.Model";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { Review } from "../models/review.Model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 
@@ -27,7 +27,7 @@ const addReview = asyncHandler(async (req, res) => {
 
     return res
     .status(201)
-    .json(new ApiResponse(201, "Review added successfully", review));
+    .json(new ApiResponse(201, review, "Review added successfully"));
 });
 
 // Get reviews for a doctor
@@ -44,7 +44,7 @@ const getDoctorReviews = asyncHandler(async (req, res) => {
 
     return res
     .status(200)
-    .json(new ApiResponse(200, "Reviews fetched successfully", { reviews, avgRating }));
+    .json(new ApiResponse(200, { reviews, avgRating }, "Reviews fetched successfully"));
 });
 
 

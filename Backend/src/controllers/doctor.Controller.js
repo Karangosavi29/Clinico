@@ -47,7 +47,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
     //  Return success
     return res
       .status(201)
-      .json(new ApiResponse(201, "Doctor created", doctor));
+      .json(new ApiResponse(201, doctor, "Doctor created"));
   
 });
 
@@ -76,7 +76,7 @@ const getallDoctor =asyncHandler(async(req ,res ) => {
         return res
         .status(200)
         .json(
-            new ApiResponse(200, "Doctors retrieved successfully", doctors)
+            new ApiResponse(200, doctors, "Doctors retrieved successfully")
         )
     
 
@@ -94,7 +94,7 @@ const getSingleDoctor =asyncHandler(async (req, res ,next) => {
      return res
      .status(200)
      .json(
-         new ApiResponse(200,"Doctor are getIt",doctor)
+         new ApiResponse(200, doctor, "Doctor fetched successfully")
      )
    } catch (error) {
         next(error)
@@ -113,7 +113,7 @@ const updateDoctor =asyncHandler(async (req,res) =>{
         return res
         .status(200)
         .json(
-            new ApiResponse(200,"Doctor Updated Succesfully",doctor)
+            new ApiResponse(200, doctor, "Doctor updated successfully")
         )
 
 });
@@ -135,7 +135,7 @@ const deleteDoctor =asyncHandler(async (req,res ) => {
         return res
         .status(200)
         .json(
-            new ApiResponse(200,"Doctor delete Succesfully")
+            new ApiResponse(200, null, "Doctor deleted successfully")
         )
     
 });
@@ -151,7 +151,7 @@ const updateAvailability = asyncHandler(async (req, res) => {
     doctor.availability = availability;
     await doctor.save();
 
-    return res.status(200).json(new ApiResponse(200,"Availability updated", doctor));
+    return res.status(200).json(new ApiResponse(200, doctor, "Availability updated"));
 });
 
 // Optionally, a GET endpoint to read availability
@@ -162,7 +162,7 @@ const getAvailability = asyncHandler(async (req, res) => {
 
     return res
     .status(200)
-    .json(new ApiResponse(200,"Availability fetched", doctor.availability));
+    .json(new ApiResponse(200, doctor.availability, "Availability fetched"));
 });
 
 // Doctor Dashboard (number of appointments, completed visits, etc)
@@ -189,14 +189,14 @@ const getDoctorStats = asyncHandler(async (req, res) => {
 
     return res
     .status(200)
-    .json(new ApiResponse(200, "Doctor stats fetched", {
+    .json(new ApiResponse(200, {
         totalAppointments,
         booked,
         completed,
         cancelled,
         upcoming,
         uniquePatients
-    }));
+    }, "Doctor stats fetched"));
 });
 
 // Dashboard (today/upcoming/completed)
@@ -219,7 +219,7 @@ const getDoctorDashboard = asyncHandler(async (req, res) => {
         .sort({ date: 1, timeSlot: 1 });
 
     return res.status(200).json(
-        new ApiResponse(200, "Doctor dashboard fetched", appointments)
+        new ApiResponse(200, appointments, "Doctor dashboard fetched")
     );
 });
 

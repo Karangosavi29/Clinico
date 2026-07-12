@@ -4,7 +4,7 @@ import cookieparser from "cookie-parser"
 const app =express()
 
 app.use(cors({  //for what you allow
-    origin:process.env.CORS_ORIGIN,
+    origin: [process.env.CORS_ORIGIN, "http://localhost:5173", "http://localhost:5174"],
     credentials:true,
     
 }))
@@ -22,6 +22,7 @@ app.use(cookieparser()) //to parse cookies
 import userRouter  from "./routes/user.Route.js"
 import doctorRouter  from "./routes/doctor.Route.js"
 import appointmentRouter from"./routes/appointment.Route.js"
+import reviewRouter from "./routes/review.Route.js"
 
 
 //route declaration 
@@ -30,6 +31,7 @@ import appointmentRouter from"./routes/appointment.Route.js"
 app.use("/api/v1/users",userRouter )
 app.use("/api/v1/doctors",doctorRouter)
 app.use("/api/v1/appointments",appointmentRouter)
+app.use("/api/v1/reviews",reviewRouter)
 
 
 

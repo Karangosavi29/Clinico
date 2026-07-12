@@ -67,7 +67,7 @@ const bookAppointment =  asyncHandler(async(req,res) =>{
         return res
         .status(201)
         .json(
-            new ApiResponse(201,"Appointment booked Succesfully ",appointment)
+            new ApiResponse(201, appointment, "Appointment booked successfully")
         )
     
     
@@ -127,7 +127,7 @@ const viewAppointment =asyncHandler(async(req,res)=>{
     return res
     .status(200)
     .json(
-        new ApiResponse(200,"Appointments fetched successfully",appointments)
+        new ApiResponse(200, appointments, "Appointments fetched successfully")
     )
     
 })
@@ -265,7 +265,7 @@ const updateAppointment =asyncHandler(async(req,res)=>{
     return res
     .status(200)
     .json(
-        new ApiResponse(200,"Appointment updated Successfully",appointment)
+        new ApiResponse(200, appointment, "Appointment updated successfully")
     )
 
 })
@@ -305,7 +305,7 @@ const cancelAppointment =asyncHandler(async (req, res) => {
     return res
     .status(200)
     .json(
-        new ApiResponse(200,"Appointment cancelled successfully",appointment)
+        new ApiResponse(200, appointment, "Appointment cancelled successfully")
     )
 
 
@@ -365,7 +365,7 @@ const rescheduleAppointment =asyncHandler(async(req,res) =>{
 
     return res
         .status(200)
-        .json(new ApiResponse(200, "Appointment rescheduled successfully", appointment)
+        .json(new ApiResponse(200, appointment, "Appointment rescheduled successfully")
     );
 })
 
@@ -377,7 +377,7 @@ const approveAppointment = asyncHandler(async (req, res) => {
     appointment.status = "approved";
     await appointment.save();
 
-    return res.status(200).json(new ApiResponse(200, "Appointment approved", appointment));
+    return res.status(200).json(new ApiResponse(200, appointment, "Appointment approved"));
 });
 
 const cancelAppointmentAdmin = asyncHandler(async (req, res) => {
@@ -388,7 +388,7 @@ const cancelAppointmentAdmin = asyncHandler(async (req, res) => {
     appointment.status = "cancelled";
     await appointment.save();
 
-    return res.status(200).json(new ApiResponse(200, "Appointment cancelled", appointment));
+    return res.status(200).json(new ApiResponse(200, appointment, "Appointment cancelled"));
 });
 
 

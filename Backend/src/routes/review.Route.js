@@ -1,7 +1,7 @@
 import{Router} from "express";
-import { verifyJWT } from "../middlewares/auth.Middleware";
-import { roleMiddleware } from "../middlewares/role.Middleware";
-import { addReview } from "../controllers/review.Controller";
+import { verifyJWT } from "../middlewares/auth.Middleware.js";
+import { roleMiddleware } from "../middlewares/role.Middleware.js";
+import { addReview, getDoctorReviews } from "../controllers/review.Controller.js";
 
 
 const router=Router();
