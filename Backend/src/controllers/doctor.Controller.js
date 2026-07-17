@@ -1,6 +1,6 @@
 import { Doctor } from "../models/doctor.Model.js";
 import { User } from "../models/user.Model.js";
-import {Review} from "../models/review.model.js";
+import {Review} from "../models/review.Model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
