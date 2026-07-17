@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { app } from "./app.js";
 import { connectDb } from "./db/db.js";
 
-// ✅ Load env FIRST
+//  Load env FIRST
 dotenv.config({
   path: "./env"
 });
@@ -15,7 +15,7 @@ dotenv.config({
       console.log(`Server running at port : ${process.env.PORT || 8000}`);
     });
 
-    // ✅ Correct place for server errors
+    //  Correct place for server errors
     server.on("error", (error) => {
       console.error("Server error:", error);
       process.exit(1);
