@@ -4,7 +4,7 @@ import { connectDb } from "./db/db.js";
 
 //  Load env FIRST
 dotenv.config({
-  path: "./env"
+  path: "./.env"
 });
 
 (async () => {
