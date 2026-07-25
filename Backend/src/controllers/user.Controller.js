@@ -1,3 +1,5 @@
+import { Doctor } from "../models/doctor.Model.js"
+import { Review } from "../models/review.Model.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.Model.js"
@@ -77,10 +79,12 @@ const registerUser= asyncHandler(async (req, res) =>{
 
    //send verification email
    const verificationUrl=`${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`
+   let emailSent = true;
    try {
      await sendEmail(user.email, "Verify your email", `Click here to verify: ${verificationUrl}`);
    } catch (emailErr) {
      console.error("Email send failed (user still created):", emailErr.message);
+     emailSent = false;
    }
    
    const createdUser =await User.findById(user._id).select(
@@ -93,8 +97,13 @@ const registerUser= asyncHandler(async (req, res) =>{
 
    return res
    .status(201)
-   .json( new ApiResponse(200,createdUser,"User registered  Successfully"));
-
+   .json( new ApiResponse(
+     201,
+     { user: createdUser, emailSent },
+     emailSent
+       ? "User registered successfully. Please check your email to verify your account."
+       : "User registered, but we couldn't send the verification email. Please use the resend option on the login page."
+   ));
 
 })
 
@@ -376,6 +385,80 @@ const resetPassword = asyncHandler(async (req, res) => {
 });
 
 
+const resendVerificationEmail = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({ email });
+
+    // Don't reveal whether the account exists (avoid account enumeration).
+    // Always return the same success message.
+    if (!user) {
+        return res.status(200).json(
+            new ApiResponse(200, {}, "If an account exists, a verification email has been sent")
+        );
+    }
+
+    if (user.emailVerified) {
+        return res.status(200).json(
+            new ApiResponse(200, {}, "This email is already verified. Please log in.")
+        );
+    }
+
+    // Invalidate any previous unused verification tokens for this user
+    await Token.deleteMany({
+        userId: user._id,
+        type: "VERIFY_EMAIL",
+        used: false,
+    });
+
+    // Generate a fresh token
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    await Token.create({
+        userId: user._id,
+        tokenHash: hashedToken,
+        type: "VERIFY_EMAIL",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${rawToken}`;
+
+    try {
+        await sendEmail(user.email, "Verify your email", `Click here to verify: ${verificationUrl}`);
+    } catch (emailErr) {
+        console.error("Resend verification email failed:", emailErr.message);
+        throw new ApiError(500, "Failed to send verification email. Please try again shortly.");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "Verification email sent. Please check your inbox.")
+    );
+});
+
+
+const getPlatformStats = asyncHandler(async (req, res) => {
+    const totalPatients = await User.countDocuments({ role: "patient" });
+    const totalDoctors = await Doctor.countDocuments();
+
+    const ratingAgg = await Review.aggregate([
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } }
+    ]);
+
+    const avgRating = ratingAgg.length ? ratingAgg[0].avgRating : 0;
+    const satisfaction = avgRating ? Math.round((avgRating / 5) * 100) : 0;
+
+    return res.status(200).json(new ApiResponse(200, {
+        totalPatients,
+        totalDoctors,
+        avgRating: Number(avgRating.toFixed(1)),
+        satisfaction,
+    }, "Platform stats fetched successfully"));
+});
 
 
 
@@ -386,5 +469,7 @@ export  {registerUser,
          refreshAccessToken,
          verifyEmail,
          forgotPassword,
-         resetPassword
+         resetPassword,
+         resendVerificationEmail,
+         getPlatformStats
 }

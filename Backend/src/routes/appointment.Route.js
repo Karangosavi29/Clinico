@@ -20,6 +20,6 @@ router.route("/:id/reschedule").post(verifyJWT,roleMiddleware("patient", "admin"
 
 
 //admin
-router.route("/admin/:id/approve").post(verifyJWT,roleMiddleware("admin"),approveAppointment)
+router.route("/:id/approve").post(verifyJWT,roleMiddleware("doctor","admin"),approveAppointment)
 router.route("/admin/:id/cancel").post(verifyJWT,roleMiddleware("admin"),cancelAppointment)
 export default router;

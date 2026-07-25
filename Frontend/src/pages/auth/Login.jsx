@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { loginUser } from "../../api/authApi.js";
+import { loginUser, resendVerificationEmail } from "../../api/authApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 /* ── tiny style helpers ───────────────────────────────────────────────────── */
@@ -53,19 +53,38 @@ function Field({ label, type = "text", value, onChange, placeholder, required, i
   );
 }
 
-function AlertBox({ type, msg }) {
+function AlertBox({ type, msg, showResend, onResend, resendStatus }) {
   if (!msg) return null;
   const s = type === "error"
     ? { bg: C.errorFaint, border: "#f5b8b8", color: C.error, icon: "⚠" }
-    : { bg: C.successFaint, border: "#86d4ad", color: C.success, icon: "✓" };
+    : type === "success"
+    ? { bg: C.successFaint, border: "#86d4ad", color: C.success, icon: "✓" }
+    : { bg: C.tealFaint, border: C.tealMid, color: C.tealDark, icon: "ℹ" };
   return (
     <div style={{
       padding: "11px 14px", borderRadius: "10px", marginBottom: "18px",
       background: s.bg, border: `1px solid ${s.border}`, color: s.color,
       fontSize: "13px", fontFamily: F.body,
-      display: "flex", alignItems: "flex-start", gap: "8px",
+      display: "flex", flexDirection: "column", gap: "6px",
     }}>
-      <span style={{ fontWeight: "800" }}>{s.icon}</span><span>{msg}</span>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+        <span style={{ fontWeight: "800" }}>{s.icon}</span><span>{msg}</span>
+      </div>
+      {showResend && (
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={resendStatus === "loading" || resendStatus === "sent"}
+          style={{
+            alignSelf: "flex-start", background: "none", border: "none",
+            color: C.teal, fontWeight: "700", fontSize: "12px",
+            textDecoration: "underline", cursor: resendStatus === "loading" ? "default" : "pointer",
+            padding: 0, marginLeft: "22px",
+          }}
+        >
+          {resendStatus === "loading" ? "Sending…" : resendStatus === "sent" ? "Sent ✓" : "Resend verification email"}
+        </button>
+      )}
     </div>
   );
 }
@@ -80,6 +99,7 @@ const Login = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotAlert, setForgotAlert] = useState(null);
+  const [resendStatus, setResendStatus] = useState(null); // null | "loading" | "sent" | "error"
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -99,7 +119,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    setLoading(true); setAlert(null);
+    setLoading(true); setAlert(null); setResendStatus(null);
     try {
       const data = await loginUser({ email: form.email, password: form.password });
       login(data); // saves to localStorage + context
@@ -108,11 +128,27 @@ const Login = () => {
     } catch (err) {
       const msg = err.response?.data?.message || "Login failed. Please try again.";
       if (msg.toLowerCase().includes("verify")) {
-        setAlert({ type: "info", msg: "Please verify your email first. Check your inbox." });
+        setAlert({ type: "info", msg: "Please verify your email first. Check your inbox.", showResend: true });
       } else {
         setAlert({ type: "error", msg });
       }
     } finally { setLoading(false); }
+  };
+
+  const handleResend = async () => {
+    if (!form.email) {
+      setAlert({ type: "error", msg: "Enter your email above first, then click resend." });
+      return;
+    }
+    setResendStatus("loading");
+    try {
+      await resendVerificationEmail(form.email);
+      setResendStatus("sent");
+      setAlert({ type: "success", msg: "Verification email sent. Please check your inbox." });
+    } catch (err) {
+      setResendStatus("error");
+      setAlert({ type: "error", msg: err.response?.data?.message || "Couldn't resend right now. Try again shortly." });
+    }
   };
 
   const handleForgot = async (e) => {
@@ -148,12 +184,10 @@ const Login = () => {
           alignItems: "center", padding: "60px 48px",
           position: "relative", overflow: "hidden",
         }}>
-          {/* Decorative rings */}
           {[[260, { top: "-70px", left: "-70px" }], [160, { bottom: "50px", right: "-40px" }], [80, { top: "42%", right: "28px" }]].map(([s, pos], i) => (
             <div key={i} style={{ position: "absolute", width: s, height: s, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.07)", ...pos }} />
           ))}
 
-          {/* Logo */}
           <Link to="/" style={{
             display: "flex", alignItems: "center", gap: "10px",
             marginBottom: "52px", textDecoration: "none",
@@ -171,7 +205,6 @@ const Login = () => {
             <span style={{ fontFamily: F.display, fontSize: "22px", fontWeight: "700", color: C.white }}>MediCare</span>
           </Link>
 
-          {/* Floating card */}
           <div style={{
             background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)",
             borderRadius: "20px", padding: "26px", width: "100%", maxWidth: "280px",
@@ -208,7 +241,6 @@ const Login = () => {
             Sign in to manage appointments, connect with doctors, and track your health journey.
           </p>
 
-          {/* Pills */}
           <div style={{ marginTop: "28px", width: "100%", maxWidth: "260px" }}>
             {["📅 Book appointments instantly", "🩺 180+ verified specialists", "🔒 Secure & private"].map(p => (
               <div key={p} style={{
@@ -233,7 +265,6 @@ const Login = () => {
           }}>
 
             {showForgot ? (
-              /* ── Forgot Password ── */
               <div style={{ animation: "slideUp 0.3s ease" }}>
                 <button onClick={() => { setShowForgot(false); setForgotAlert(null); }}
                   style={{ background: "none", border: "none", color: C.teal, cursor: "pointer", fontSize: "13px", fontFamily: F.body, fontWeight: "600", padding: "0 0 20px 0", display: "flex", alignItems: "center", gap: "5px" }}>
@@ -252,12 +283,17 @@ const Login = () => {
                 </form>
               </div>
             ) : (
-              /* ── Login Form ── */
               <div style={{ animation: "slideUp 0.3s ease" }}>
                 <h2 style={{ fontFamily: F.display, fontSize: "28px", color: C.text, marginBottom: "4px" }}>Welcome back</h2>
                 <p style={{ fontSize: "13px", color: C.textLight, marginBottom: "28px" }}>Sign in to your MediCare account</p>
 
-                <AlertBox type={alert?.type} msg={alert?.msg} />
+                <AlertBox
+                  type={alert?.type}
+                  msg={alert?.msg}
+                  showResend={alert?.showResend}
+                  onResend={handleResend}
+                  resendStatus={resendStatus}
+                />
 
                 <form onSubmit={handleSubmit} noValidate>
                   <Field label="Email Address" type="email" value={form.email}

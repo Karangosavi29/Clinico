@@ -22,8 +22,12 @@ const appointmentSchema = new mongoose.Schema({
     },
     status:{
         type:String,
-        enum:["pending","booked","cancelled","completed"],
+        enum:["pending","approved","cancelled","completed"],
         default:"pending"
+    },
+    meetingLink:{
+        type:String,
+        default:null
     },
     notes:{   //Useful for prescriptions, remarks, or patient info
         type:String,

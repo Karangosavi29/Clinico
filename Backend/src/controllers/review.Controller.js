@@ -47,8 +47,28 @@ const getDoctorReviews = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, { reviews, avgRating }, "Reviews fetched successfully"));
 });
 
+const getTestimonials = asyncHandler(async (req, res) => {
+    const reviews = await Review.find({ comment: { $exists: true, $ne: "" } })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .populate("patientId", "name");
+
+    const testimonials = reviews.map(r => ({
+        id: r._id,
+        name: r.patientId?.name || "Anonymous",
+        role: "Patient",
+        quote: r.comment,
+        stars: r.rating,
+    }));
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, testimonials, "Testimonials fetched successfully"));
+});
+
 
 export {
     addReview,
-    getDoctorReviews
+    getDoctorReviews,
+    getTestimonials
 }

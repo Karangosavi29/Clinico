@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {getallUser, loginUser, logoutUser, refreshAccessToken, registerUser, verifyEmail,forgotPassword, resetPassword} from './../controllers/user.Controller.js';
+import {getallUser, loginUser, logoutUser, refreshAccessToken, registerUser, verifyEmail,forgotPassword, resetPassword,resendVerificationEmail ,getPlatformStats} from './../controllers/user.Controller.js';
 import { verifyJWT } from './../middlewares/auth.Middleware.js';
 import { roleMiddleware } from "../middlewares/role.Middleware.js";
 
@@ -23,4 +23,6 @@ router.route("/admin/users").get(
 router.route("/verify-email").get(verifyEmail)
 router.route("/forgot-password").post(forgotPassword)
 router.route("/reset-password").post(resetPassword)
+router.route("/resend-verification").post(resendVerificationEmail);
+router.route("/stats").get(getPlatformStats)
 export default router; 

@@ -12,3 +12,9 @@ export const getDoctorReviews = async (doctorId) => {
   const res = await axiosInstance.get(`/api/v1/reviews/${doctorId}`);
   return res.data.data; // { reviews, avgRating }
 };
+
+// GET /api/v1/reviews/testimonials — public
+export const getTestimonials = async () => {
+  const res = await axiosInstance.get("/api/v1/reviews/testimonials");
+  return res.data.data;
+};

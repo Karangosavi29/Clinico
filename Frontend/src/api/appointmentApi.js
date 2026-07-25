@@ -33,9 +33,9 @@ export const rescheduleAppointment = async (id, data) => {
   return res.data.data;
 };
 
-// POST /api/v1/appointments/admin/:id/approve — admin only
+// POST /api/v1/appointments/:id/approve — doctor or admin
 export const approveAppointment = async (id) => {
-  const res = await axiosInstance.post(`/api/v1/appointments/admin/${id}/approve`);
+  const res = await axiosInstance.post(`/api/v1/appointments/${id}/approve`);
   return res.data.data;
 };
 

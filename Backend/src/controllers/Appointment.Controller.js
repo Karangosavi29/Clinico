@@ -46,11 +46,11 @@ const bookAppointment =  asyncHandler(async(req,res) =>{
             doctorId,
             date:new Date(date),
             timeSlot,
-            status:"booked",
+            status: { $in: ["pending", "approved"] },
         });
     
-        if(existingAppointment){
-            throw new ApiError(400,"Time slot Already Booked")
+        if(appointment.status !== "pending" && appointment.status !== "approved"){
+            throw new ApiError(400,"Only pending or approved appointments can be updated")
         }
     
         //create Appointment
@@ -220,7 +220,13 @@ const updateAppointment =asyncHandler(async(req,res)=>{
         if(appointment.doctorId.toString() !== userId.toString()){
             throw new ApiError(403,"You can only update your assigned appointments")
         }
-        if (status) appointment.status = status; // e.g., completed, cancelled
+        if (status) {
+            const allowedStatuses = ["completed", "cancelled"];
+            if (!allowedStatuses.includes(status)) {
+                throw new ApiError(400, `Doctors can only set status to: ${allowedStatuses.join(", ")}`);
+            }
+            appointment.status = status;
+        }
     }
 
     //Admin updates: validate availability + conflict
@@ -375,6 +381,13 @@ const approveAppointment = asyncHandler(async (req, res) => {
     if (appointment.status !== "pending") throw new ApiError(400, "Only pending appointments can be approved");
 
     appointment.status = "approved";
+
+    // Auto-generate a video call link if one doesn't already exist
+    if (!appointment.meetingLink) {
+        const roomName = `clinico-${appointment._id}`;
+        appointment.meetingLink = `https://meet.jit.si/${roomName}`;
+    }
+
     await appointment.save();
 
     return res.status(200).json(new ApiResponse(200, appointment, "Appointment approved"));
@@ -384,7 +397,12 @@ const cancelAppointmentAdmin = asyncHandler(async (req, res) => {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) throw new ApiError(404, "Appointment not found");
     if (appointment.status === "cancelled") throw new ApiError(400, "Already cancelled");
-
+    if(role =="doctor"){
+        const doctorRecord = await Doctor.findOne({ userId });
+        if (!doctorRecord || appointment.doctorId.toString() !== doctorRecord._id.toString()) {
+            throw new ApiError(403,"you can only cancel your assigned appointment")
+        }
+    }
     appointment.status = "cancelled";
     await appointment.save();
 

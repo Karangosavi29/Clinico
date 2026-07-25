@@ -323,7 +323,7 @@ function RescheduleModal({ appointment, onClose, onRescheduled }) {
 function AppointmentCard({ appt, onCancel, onReschedule }) {
   const doctorName = appt.doctorId?.userId?.name || appt.doctorId?.name || "Doctor";
   const doctorSpec = appt.doctorId?.specialization || "Specialist";
-  const canCancel = appt.status === "booked" || appt.status === "pending";
+  const canCancel = appt.status === "approved" || appt.status === "pending";
   const canReschedule = appt.status === "pending" || appt.status === "approved";
 
   return (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { getAppointments, updateAppointment } from "../../api/appointmentApi";
+import { getAppointments, updateAppointment,approveAppointment  } from "../../api/appointmentApi";
 import { getDoctorStats, updateAvailability } from "../../api/doctorApi";
 
 const C = {
@@ -153,6 +153,16 @@ function AppointmentRow({ appt, onStatusChange }) {
     } finally { setUpdating(false); }
   };
 
+  const handleApprove = async () => {
+    setUpdating(true);
+    try {
+      await approveAppointment(appt._id);
+      onStatusChange();
+    } catch (err) {
+      alert(err.response?.data?.message || "Approve failed");
+    } finally { setUpdating(false); }
+  };
+
   return (
     <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr auto",
       gap:"12px", alignItems:"center", padding:"14px 16px",
@@ -173,8 +183,16 @@ function AppointmentRow({ appt, onStatusChange }) {
       </div>
       <div style={{ fontSize:"13px", color:C.text }}>🕐 {appt.timeSlot}</div>
       <StatusBadge status={appt.status} />
-      <div style={{ display:"flex", gap:"6px" }}>
-        {appt.status === "booked" && (
+      <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
+        {appt.status === "pending" && (
+          <button onClick={handleApprove} disabled={updating}
+            style={{ padding:"5px 10px", background:C.successFaint, color:C.success,
+              border:`1px solid #86d4ad`, borderRadius:"7px", fontSize:"11px",
+              fontWeight:"700", cursor:"pointer", fontFamily:F.body, whiteSpace:"nowrap" }}>
+            ✓ Approve
+          </button>
+        )}
+        {appt.status === "approved" && (
           <button onClick={() => handleStatus("completed")} disabled={updating}
             style={{ padding:"5px 10px", background:C.successFaint, color:C.success,
               border:`1px solid #86d4ad`, borderRadius:"7px", fontSize:"11px",
@@ -182,13 +200,21 @@ function AppointmentRow({ appt, onStatusChange }) {
             ✓ Done
           </button>
         )}
-        {(appt.status === "booked" || appt.status === "pending") && (
+        {(appt.status === "approved" || appt.status === "pending") && (
           <button onClick={() => handleStatus("cancelled")} disabled={updating}
             style={{ padding:"5px 10px", background:C.errorFaint, color:C.error,
               border:`1px solid #f5b8b8`, borderRadius:"7px", fontSize:"11px",
               fontWeight:"700", cursor:"pointer", fontFamily:F.body }}>
             ✕
           </button>
+        )}
+        {appt.status === "approved" && appt.meetingLink && (
+          <a href={appt.meetingLink} target="_blank" rel="noopener noreferrer"
+            style={{ padding:"5px 10px", background:"#eff6ff", color:"#1d4ed8",
+              border:"1px solid #93c5fd", borderRadius:"7px", fontSize:"11px",
+              fontWeight:"700", textDecoration:"none", fontFamily:F.body, whiteSpace:"nowrap" }}>
+            🎥 Join
+          </a>
         )}
       </div>
     </div>

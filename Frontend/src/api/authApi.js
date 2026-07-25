@@ -38,3 +38,15 @@ export const logoutUser = async () => {
   const res = await axiosInstance.post("/api/v1/users/Logout");
   return res.data;
 };
+
+// POST /api/v1/users/resend-verification
+export const resendVerificationEmail = async (email) => {
+  const res = await axiosInstance.post("/api/v1/users/resend-verification", { email });
+  return res.data;
+};
+
+// GET /api/v1/users/stats — public
+export const getPlatformStats = async () => {
+  const res = await axiosInstance.get("/api/v1/users/stats");
+  return res.data.data;
+};

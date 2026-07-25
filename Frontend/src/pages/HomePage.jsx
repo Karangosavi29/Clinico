@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getPlatformStats } from "../api/authApi";
+import { getAllDoctors } from "../api/doctorApi";
+import { getTestimonials } from "../api/reviewApi";
 
 /* ── Design Tokens ─────────────────────────────────────────────────────────── */
 const C = {
@@ -11,21 +14,7 @@ const C = {
 };
 const F = { display: "'Playfair Display', serif", body: "'DM Sans', sans-serif" };
 
-/* ── Data ──────────────────────────────────────────────────────────────────── */
-const DOCTORS = [
-  { name: "Dr. Priya Sharma",  spec: "Cardiologist",    exp: "12 yrs", rating: 4.9, reviews: 184, av: "PS", col: "#0B6E6E" },
-  { name: "Dr. Rahul Mehta",   spec: "Neurologist",     exp: "9 yrs",  rating: 4.8, reviews: 132, av: "RM", col: "#1a7a5a" },
-  { name: "Dr. Anjali Verma",  spec: "Pediatrician",    exp: "15 yrs", rating: 5.0, reviews: 210, av: "AV", col: "#2a6090" },
-  { name: "Dr. Vikram Patel",  spec: "Orthopedist",     exp: "11 yrs", rating: 4.7, reviews: 98,  av: "VP", col: "#6a3a8a" },
-  { name: "Dr. Meena Rao",     spec: "Dermatologist",   exp: "8 yrs",  rating: 4.9, reviews: 156, av: "MR", col: "#8a4a2a" },
-  { name: "Dr. Suresh Iyer",   spec: "Psychiatrist",    exp: "14 yrs", rating: 4.8, reviews: 87,  av: "SI", col: "#0a6a4a" },
-];
-
-const TESTIMONIALS = [
-  { name: "Fatima K.",    role: "Patient", quote: "Booking has never been easier. The doctor was incredibly helpful and the entire process was seamless.", stars: 5, av: "FK" },
-  { name: "Dr. Rohit D.", role: "Doctor",  quote: "MediCare helped me manage my practice better. The dashboard gives me everything I need to track my appointments.", stars: 5, av: "RD" },
-  { name: "Sunita M.",    role: "Patient", quote: "Found the perfect specialist within minutes. The review system helped me choose the right doctor confidently.", stars: 5, av: "SM" },
-];
+const AVATAR_COLORS = ["#0B6E6E", "#1a7a5a", "#2a6090", "#6a3a8a", "#8a4a2a", "#0a6a4a"];
 
 const FEATURES = [
   { icon: "📅", title: "Easy Scheduling",   desc: "Book, reschedule, or cancel appointments in seconds — 24/7 availability at your fingertips.", bg: "#e8f6f6" },
@@ -40,6 +29,11 @@ const STEPS = [
   { n: "03", icon: "📅", title: "Book Appointment",  desc: "Select a time slot that works for you and confirm instantly." },
   { n: "04", icon: "✅", title: "Get Your Care",     desc: "Attend your appointment and receive helpful follow-up reminders." },
 ];
+
+/* ── Helpers ───────────────────────────────────────────────────────────────── */
+function initials(name = "") {
+  return name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+}
 
 /* ── Sub-components ────────────────────────────────────────────────────────── */
 function Navbar() {
@@ -58,7 +52,6 @@ function Navbar() {
       display: "flex", alignItems: "center", justifyContent: "space-between",
       fontFamily: F.body,
     }}>
-      {/* Logo */}
       <Link to="/" style={{ display: "flex", alignItems: "center", gap: "9px", textDecoration: "none" }}>
         <div style={{ width: "34px", height: "34px", background: C.teal, borderRadius: "9px", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <CrossIcon />
@@ -66,7 +59,6 @@ function Navbar() {
         <span style={{ fontFamily: F.display, fontSize: "20px", fontWeight: "700", color: C.teal }}>MediCare</span>
       </Link>
 
-      {/* Nav links */}
       <div style={{ display: "flex", gap: "32px" }}>
         {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Doctors", "#doctors"], ["Browse Doctors", "/browse-doctors"]].map(([label, href]) => (
           <a key={label} href={href} style={{
@@ -80,7 +72,6 @@ function Navbar() {
         ))}
       </div>
 
-      {/* Auth buttons */}
       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
         {user ? (
           <>
@@ -132,7 +123,7 @@ function CrossIcon() {
   );
 }
 
-function HeroCard() {
+function HeroCard({ topDoctor, stats }) {
   return (
     <div style={{
       background: C.white, borderRadius: "22px", padding: "26px",
@@ -140,31 +131,38 @@ function HeroCard() {
       maxWidth: "340px", width: "100%",
       animation: "floatY 4s ease-in-out infinite",
     }}>
-      {/* Doctor row */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-        <div style={{ width: "50px", height: "50px", borderRadius: "50%", background: `linear-gradient(135deg,${C.teal},${C.tealLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", fontWeight: "700", color: C.white, fontFamily: F.display, flexShrink: 0 }}>PS</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: "14px", fontWeight: "700", color: C.text, fontFamily: F.body }}>Dr. Priya Sharma</div>
-          <div style={{ fontSize: "12px", color: C.textLight, fontFamily: F.body }}>Cardiologist · 12 yrs exp.</div>
+        <div style={{ width: "50px", height: "50px", borderRadius: "50%", background: `linear-gradient(135deg,${C.teal},${C.tealLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", fontWeight: "700", color: C.white, fontFamily: F.display, flexShrink: 0 }}>
+          {topDoctor ? initials(topDoctor.name) : "MC"}
         </div>
-        <div style={{ background: C.tealFaint, borderRadius: "20px", padding: "3px 9px", fontSize: "12px", fontWeight: "600", color: C.teal, flexShrink: 0 }}>⭐ 4.9</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "14px", fontWeight: "700", color: C.text, fontFamily: F.body }}>{topDoctor ? topDoctor.name : "Loading…"}</div>
+          <div style={{ fontSize: "12px", color: C.textLight, fontFamily: F.body }}>{topDoctor ? `${topDoctor.spec} · ${topDoctor.exp} exp.` : ""}</div>
+        </div>
+        {topDoctor && (
+          <div style={{ background: C.tealFaint, borderRadius: "20px", padding: "3px 9px", fontSize: "12px", fontWeight: "600", color: C.teal, flexShrink: 0 }}>
+            ⭐ {topDoctor.rating > 0 ? topDoctor.rating.toFixed(1) : "New"}
+          </div>
+        )}
       </div>
 
-      {/* Appointment block */}
       <div style={{ background: C.tealFaint, borderRadius: "12px", padding: "12px 14px", marginBottom: "14px", border: `1px solid ${C.tealMid}` }}>
-        <div style={{ fontSize: "10px", color: C.textLight, fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "7px" }}>Next Appointment</div>
+        <div style={{ fontSize: "10px", color: C.textLight, fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "7px" }}>Verified & Ready to Book</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: "13px", fontWeight: "600", color: C.text }}>📅 March 14, 2026</div>
-            <div style={{ fontSize: "11px", color: C.textLight, marginTop: "2px" }}>10:30 AM – 11:00 AM</div>
+            <div style={{ fontSize: "13px", fontWeight: "600", color: C.text }}>📅 Multiple slots weekly</div>
+            <div style={{ fontSize: "11px", color: C.textLight, marginTop: "2px" }}>Choose a day that suits you</div>
           </div>
-          <div style={{ padding: "3px 10px", background: "#e8faf2", color: "#1a7a52", border: "1px solid #86d4ad", borderRadius: "20px", fontSize: "11px", fontWeight: "700" }}>Confirmed</div>
+          <div style={{ padding: "3px 10px", background: "#e8faf2", color: "#1a7a52", border: "1px solid #86d4ad", borderRadius: "20px", fontSize: "11px", fontWeight: "700" }}>Available</div>
         </div>
       </div>
 
-      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-        {[["👥","2,400+","Patients"],["🩺","180+","Doctors"],["⭐","4.9/5","Rating"]].map(([ic,val,lbl]) => (
+        {[
+          ["👥", stats ? `${stats.totalPatients}+` : "…", "Patients"],
+          ["🩺", stats ? `${stats.totalDoctors}+` : "…", "Doctors"],
+          ["⭐", stats ? `${stats.satisfaction}%` : "…", "Satisfaction"],
+        ].map(([ic,val,lbl]) => (
           <div key={lbl} style={{ textAlign: "center", padding: "9px 4px", background: C.offwhite, borderRadius: "9px", border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: "14px", marginBottom: "2px" }}>{ic}</div>
             <div style={{ fontSize: "12px", fontWeight: "700", color: C.text, fontFamily: F.body }}>{val}</div>
@@ -211,22 +209,24 @@ function StepCard({ n, icon, title, desc }) {
 function DoctorCard({ d }) {
   const [hov, setHov] = useState(false);
   return (
-    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{
-        background: C.white, borderRadius: "16px", padding: "20px",
-        border: `1.5px solid ${hov ? C.teal : C.border}`,
-        boxShadow: hov ? "0 10px 36px rgba(11,110,110,0.13)" : "0 2px 8px rgba(0,0,0,0.04)",
-        transition: "all 0.25s", transform: hov ? "translateY(-3px)" : "none",
-        cursor: "pointer",
-      }}>
-      <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: `linear-gradient(135deg,${d.col},${d.col}99)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", fontWeight: "700", color: C.white, fontFamily: F.display, marginBottom: "12px" }}>{d.av}</div>
-      <div style={{ fontSize: "14px", fontWeight: "700", color: C.text, marginBottom: "2px", fontFamily: F.body }}>{d.name}</div>
-      <div style={{ fontSize: "12px", color: C.teal, fontWeight: "600", marginBottom: "10px", fontFamily: F.body }}>{d.spec}</div>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span style={{ fontSize: "11px", color: C.textLight, fontFamily: F.body }}>⭐ {d.rating} ({d.reviews})</span>
-        <span style={{ fontSize: "11px", color: C.textLight, fontFamily: F.body }}>{d.exp}</span>
+    <Link to={`/doctors/${d.id}`} style={{ textDecoration: "none" }}>
+      <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+        style={{
+          background: C.white, borderRadius: "16px", padding: "20px",
+          border: `1.5px solid ${hov ? C.teal : C.border}`,
+          boxShadow: hov ? "0 10px 36px rgba(11,110,110,0.13)" : "0 2px 8px rgba(0,0,0,0.04)",
+          transition: "all 0.25s", transform: hov ? "translateY(-3px)" : "none",
+          cursor: "pointer",
+        }}>
+        <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: `linear-gradient(135deg,${d.col},${d.col}99)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", fontWeight: "700", color: C.white, fontFamily: F.display, marginBottom: "12px" }}>{d.av}</div>
+        <div style={{ fontSize: "14px", fontWeight: "700", color: C.text, marginBottom: "2px", fontFamily: F.body }}>{d.name}</div>
+        <div style={{ fontSize: "12px", color: C.teal, fontWeight: "600", marginBottom: "10px", fontFamily: F.body }}>{d.spec}</div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "11px", color: C.textLight, fontFamily: F.body }}>⭐ {d.rating > 0 ? `${d.rating.toFixed(1)} (${d.reviews})` : "New"}</span>
+          <span style={{ fontSize: "11px", color: C.textLight, fontFamily: F.body }}>{d.exp}</span>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -236,7 +236,7 @@ function TestimonialCard({ t }) {
       <div style={{ color: "#f5c842", fontSize: "14px", marginBottom: "14px", letterSpacing: "2px" }}>{"★".repeat(t.stars)}</div>
       <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.72)", lineHeight: "1.8", marginBottom: "20px", fontStyle: "italic", fontFamily: F.body }}>"{t.quote}"</p>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: `linear-gradient(135deg,${C.tealLight},${C.teal})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", color: C.white, flexShrink: 0 }}>{t.av}</div>
+        <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: `linear-gradient(135deg,${C.tealLight},${C.teal})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", color: C.white, flexShrink: 0 }}>{initials(t.name)}</div>
         <div>
           <div style={{ fontSize: "13px", fontWeight: "600", color: C.white, fontFamily: F.body }}>{t.name}</div>
           <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", fontFamily: F.body }}>{t.role}</div>
@@ -254,7 +254,6 @@ function Footer() {
     <footer style={{ background: `linear-gradient(170deg,${C.tealDeep} 0%,#041e1e 100%)`, color: "rgba(255,255,255,0.65)", padding: "64px 5% 28px", fontFamily: F.body }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1.5fr", gap: "44px", marginBottom: "48px" }}>
-          {/* Brand */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "16px" }}>
               <div style={{ width: "34px", height: "34px", background: C.tealLight, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}><CrossIcon /></div>
@@ -268,7 +267,6 @@ function Footer() {
             </div>
           </div>
 
-          {/* Links */}
           {[
             { title: "Platform", links: ["Features", "Find Doctors", "For Doctors"] },
             { title: "Company",  links: ["About", "Careers", "Blog", "Contact"] },
@@ -279,7 +277,6 @@ function Footer() {
             </div>
           ))}
 
-          {/* Newsletter */}
           <div>
             <h4 style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", color: C.white, textTransform: "uppercase", marginBottom: "16px" }}>Newsletter</h4>
             <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", marginBottom: "12px", lineHeight: "1.7" }}>Health tips & updates in your inbox.</p>
@@ -296,7 +293,6 @@ function Footer() {
           </div>
         </div>
 
-        {/* Bottom */}
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: "22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.28)" }}>© 2026 MediCare Health Portal. All rights reserved.</p>
           <div style={{ display: "flex", gap: "18px" }}>
@@ -308,7 +304,6 @@ function Footer() {
   );
 }
 
-/* ── HeroButton ────────────────────────────────────────────────────────────── */
 function HeroBtn({ to, label }) {
   const [hov, setHov] = useState(false);
   return (
@@ -327,7 +322,6 @@ function HeroBtn({ to, label }) {
   );
 }
 
-/* ── Section label ─────────────────────────────────────────────────────────── */
 function SectionTag({ label, dark }) {
   return (
     <span style={{
@@ -345,7 +339,63 @@ function SectionTag({ label, dark }) {
 /* ── HomePage ──────────────────────────────────────────────────────────────── */
 const HomePage = () => {
   const [carIdx, setCarIdx] = useState(0);
-  const visible = [...DOCTORS, ...DOCTORS].slice(carIdx, carIdx + 3);
+  const [doctors, setDoctors] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [testimonials, setTestimonials] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+  const [loadingTestimonials, setLoadingTestimonials] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await getAllDoctors();
+        const mapped = (raw || [])
+          .slice()
+          .sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0))
+          .map((d, i) => ({
+            id: d._id,
+            name: `Dr. ${d.userId?.name ? d.userId.name.charAt(0).toUpperCase() + d.userId.name.slice(1) : "Unknown"}`,
+            spec: d.specialization,
+            exp: `${d.experience || 0} yrs`,
+            rating: d.avgRating || 0,
+            reviews: d.reviewCount || 0,
+            av: initials(d.userId?.name || "Dr"),
+            col: AVATAR_COLORS[i % AVATAR_COLORS.length],
+          }));
+        setDoctors(mapped);
+      } catch (err) {
+        console.error("Failed to load doctors:", err);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    })();
+
+    (async () => {
+      try {
+        const data = await getPlatformStats();
+        setStats(data);
+      } catch (err) {
+        console.error("Failed to load stats:", err);
+      }
+    })();
+
+    (async () => {
+      try {
+        const data = await getTestimonials();
+        setTestimonials(data || []);
+      } catch (err) {
+        console.error("Failed to load testimonials:", err);
+      } finally {
+        setLoadingTestimonials(false);
+      }
+    })();
+  }, []);
+
+  const visible = doctors.length
+    ? [...doctors, ...doctors].slice(carIdx, carIdx + Math.min(3, doctors.length))
+    : [];
+
+  const topDoctor = doctors[0] || null;
 
   return (
     <>
@@ -370,12 +420,10 @@ const HomePage = () => {
           display: "flex", alignItems: "center",
           position: "relative", overflow: "hidden",
         }}>
-          {/* bg effects */}
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: `radial-gradient(circle at 15% 60%, rgba(20,168,168,0.15) 0%, transparent 50%), radial-gradient(circle at 85% 20%, rgba(255,255,255,0.04) 0%, transparent 40%)` }} />
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.03, backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px)", backgroundSize: "54px 54px" }} />
 
           <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 5%", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "64px", alignItems: "center", width: "100%" }}>
-            {/* Copy */}
             <div style={{ animation: "fadeUp 0.7s ease forwards" }}>
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: "8px",
@@ -385,7 +433,7 @@ const HomePage = () => {
                 marginBottom: "26px", backdropFilter: "blur(8px)",
               }}>
                 <span style={{ background: C.tealLight, borderRadius: "999px", padding: "2px 8px", fontSize: "11px", fontWeight: "700", color: C.white }}>New</span>
-                180+ Verified Doctors Now Available
+                {stats ? `${stats.totalDoctors}+ Verified Doctors Now Available` : "Verified Doctors Now Available"}
               </div>
 
               <h1 style={{ fontFamily: F.display, fontSize: "clamp(34px,4.5vw,54px)", fontWeight: "700", color: C.white, lineHeight: "1.1", marginBottom: "20px" }}>
@@ -404,9 +452,12 @@ const HomePage = () => {
                 <HeroBtn to="/doctor-signup"   label="🩺 Become a Doctor"   />
               </div>
 
-              {/* Trust bar */}
               <div style={{ display: "flex", gap: "28px", marginTop: "40px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "24px" }}>
-                {[["2,400+","Patients"],["180+","Doctors"],["98%","Satisfaction"]].map(([n,l]) => (
+                {[
+                  [stats ? `${stats.totalPatients}+` : "…", "Patients"],
+                  [stats ? `${stats.totalDoctors}+` : "…", "Doctors"],
+                  [stats ? `${stats.satisfaction}%` : "…", "Satisfaction"],
+                ].map(([n,l]) => (
                   <div key={l}>
                     <div style={{ fontFamily: F.display, fontSize: "22px", fontWeight: "700", color: C.white }}>{n}</div>
                     <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)", marginTop: "2px", fontFamily: F.body }}>{l}</div>
@@ -415,9 +466,8 @@ const HomePage = () => {
               </div>
             </div>
 
-            {/* Hero card */}
             <div style={{ display: "flex", justifyContent: "center", animation: "fadeUp 0.9s ease forwards" }}>
-              <HeroCard />
+              <HeroCard topDoctor={topDoctor} stats={stats} />
             </div>
           </div>
         </section>
@@ -445,7 +495,6 @@ const HomePage = () => {
               <p style={{ fontSize: "15px", color: C.textLight, lineHeight: "1.7", fontFamily: F.body }}>Start your healthcare journey today — it only takes a few minutes.</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", position: "relative" }}>
-              {/* connector */}
               <div style={{ position: "absolute", top: "34px", left: "12.5%", right: "12.5%", height: "2px", background: `linear-gradient(90deg,${C.teal},${C.tealLight})`, opacity: 0.2 }} />
               {STEPS.map((s, i) => <StepCard key={i} {...s} />)}
             </div>
@@ -460,15 +509,25 @@ const HomePage = () => {
                 <SectionTag label="Our Specialists" />
                 <h2 style={{ fontFamily: F.display, fontSize: "clamp(24px,3vw,34px)", fontWeight: "700", color: C.text }}>Meet our top doctors</h2>
               </div>
-              <div style={{ display: "flex", gap: "10px", paddingBottom: "4px" }}>
-                {[["←", () => setCarIdx(i => Math.max(0, i - 1))], ["→", () => setCarIdx(i => (i + 1) % DOCTORS.length)]].map(([lbl, fn], i) => (
-                  <button key={lbl} onClick={fn} style={{ width: "38px", height: "38px", borderRadius: "50%", border: lbl === "→" ? "none" : `1.5px solid ${C.border}`, background: lbl === "→" ? C.teal : C.white, color: lbl === "→" ? C.white : C.textMid, cursor: "pointer", fontSize: "15px", display: "flex", alignItems: "center", justifyContent: "center" }}>{lbl}</button>
-                ))}
+              {doctors.length > 3 && (
+                <div style={{ display: "flex", gap: "10px", paddingBottom: "4px" }}>
+                  {[["←", () => setCarIdx(i => Math.max(0, i - 1))], ["→", () => setCarIdx(i => (i + 1) % doctors.length)]].map(([lbl, fn], i) => (
+                    <button key={lbl} onClick={fn} style={{ width: "38px", height: "38px", borderRadius: "50%", border: lbl === "→" ? "none" : `1.5px solid ${C.border}`, background: lbl === "→" ? C.teal : C.white, color: lbl === "→" ? C.white : C.textMid, cursor: "pointer", fontSize: "15px", display: "flex", alignItems: "center", justifyContent: "center" }}>{lbl}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {loadingDoctors ? (
+              <p style={{ textAlign: "center", color: C.textLight, fontSize: "14px" }}>Loading doctors…</p>
+            ) : doctors.length === 0 ? (
+              <p style={{ textAlign: "center", color: C.textLight, fontSize: "14px" }}>No doctors available yet — check back soon!</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "18px" }}>
+                {visible.map((d, i) => <DoctorCard key={`${d.id}-${i}`} d={d} />)}
               </div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "18px" }}>
-              {visible.map((d, i) => <DoctorCard key={i} d={d} />)}
-            </div>
+            )}
+
             <div style={{ textAlign: "center", marginTop: "36px" }}>
               <Link to="/browse-doctors" style={{ textDecoration: "none" }}>
                 <button style={{ padding: "13px 32px", background: C.teal, color: C.white, border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: "700", fontFamily: F.body, cursor: "pointer", boxShadow: "0 4px 18px rgba(11,110,110,0.25)" }}>
@@ -487,11 +546,18 @@ const HomePage = () => {
               <h2 style={{ fontFamily: F.display, fontSize: "clamp(26px,3.5vw,38px)", fontWeight: "700", color: C.white, marginBottom: "12px" }}>
                 What people are <span style={{ fontStyle: "italic", color: "#7ee8e8" }}>saying</span>
               </h2>
-              <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.48)", lineHeight: "1.7", fontFamily: F.body }}>Real stories from patients and doctors who trust MediCare.</p>
+              <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.48)", lineHeight: "1.7", fontFamily: F.body }}>Real stories from patients who trust MediCare.</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "20px" }}>
-              {TESTIMONIALS.map((t, i) => <TestimonialCard key={i} t={t} />)}
-            </div>
+
+            {loadingTestimonials ? (
+              <p style={{ textAlign: "center", color: "rgba(255,255,255,0.5)", fontSize: "14px" }}>Loading testimonials…</p>
+            ) : testimonials.length === 0 ? (
+              <p style={{ textAlign: "center", color: "rgba(255,255,255,0.5)", fontSize: "14px" }}>No reviews yet — be the first to share your experience!</p>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(3, testimonials.length)},1fr)`, gap: "20px" }}>
+                {testimonials.slice(0, 3).map((t) => <TestimonialCard key={t.id} t={t} />)}
+              </div>
+            )}
           </div>
         </section>
 
